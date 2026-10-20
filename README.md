@@ -40,3 +40,25 @@ In Dancers, choose **2D illustrated** or **3D dimensional** using the appearance
 New `rhythm.js` analyzes frequency-bin transients locally using spectral flux and estimates a dance-friendly BPM. In Auto mode, choreography responds to likely rhythmic onsets. In BPM Lock mode, movement follows the explicit tempo; the Tap Tempo button estimates BPM from taps. A 4/8/16-beat change interval controls random move transitions. Each named character has a weighted dance personality. Illustrated SVGs now have articulated head/arm/leg groups and 3D meshes crossfade between movement poses. The built-in sequencer uses its exact clock for dancer beats. No music is uploaded or sent to an external API.
 
 **Accuracy:** General-purpose music-beat detection is heuristic. Sync can slip for complex rhythms, songs with no drums, or major tempo changes. BPM Lock / Tap Tempo is provided as the predictable fallback. Browsers on iOS cannot float a live, custom WebGL view over unrelated apps; desktop Document Picture-in-Picture and an iOS video-PiP preview have platform limits.
+
+
+## Retro Visualizer & Choreography v5
+
+Inspired by the **Microsoft Plus! Dancer** Windows XP desktop-dancer experience and the nostalgia of the old Windows Media Player visualizations, but **all artwork, geometry and Canvas rendering are newly written and original.** No proprietary visualizer DLLs, artwork, skins, animations or audio are bundled.
+
+- Studio: choose 8 reactive visuals — Bars & Waves, Alchemy Orbs, Battery Pulse, Ambience Swirl, Starfield, Musical Colors/Plasma, Neon Tunnel and Oscilloscope — in 6 palettes. The **RETRO FULLSCREEN** button opens a responsive overlay with old-school blue media-player chrome and playback/preset buttons. Works on mobile and desktop without requiring the Fullscreen API. Use **Shuffle visuals** to automatically cycle modes while audio is active. Spectrum and waveform data is read locally with the browser Web Audio analyser.
+- Four additional choreography families: Popstar/Feminine, Dark/Sultry Goth, Rockstar Headbang, Rave/EDM. The original seven move families remain. Strong-beat accents, synchronized-ish changeovers, nested forearms, separate upper/lower legs, torso and long-hair sway give 2D sprites more articulation. For WebGL-capable devices, 3D arms, hips, hair and layered skirts move as separate geometric segments. Characters automatically rotate through weighted style-specific choreography if Random Dance is enabled.
+- **Important bug fix:** Dance motion now uses a continuously advancing beat clock. It keeps moving through quieter passages when automatic onset detection misses musical transients, instead of freezing after a single beat. Manual BPM Lock and Tap Tempo remain available; automatic rhythm estimation is still heuristic, not full music transcription.
+- New character/outfit inspirations from uploaded visual references: Pinkstar/Y2K, Raven/gothic, Crimson/formal, Punk Riot/rockstar, Dark Prince, with pink glam, punk plaid, raven and crimson outfit options. These are original modular vector sprites, **not** the original reference photos or detailed photorealistic Sims models. Uploaded inspiration photos are not published as assets.
+- Original in-page dancers can be dragged over the website. Existing platform limits for desktop PiP and iPhone video PiP still apply. iOS does not permit arbitrary true overlay windows above unrelated apps.
+
+### How to try it
+
+1. Import a playable song in Studio and tap Play.
+2. Under **Audio pulse**, select a visualization and color palette, then tap **RETRO FULLSCREEN** to recreate the 2000s media-player viewing experience.
+3. Go to **Dancers**, select a named character and dance style, tap **Add dancer**, enable **Random Dance** and **Beat Sync**, and pick **Change move after 4 beats** for varied choreography.
+4. For steadier rhythm on difficult songs, select **BPM Lock** and tap tempo or enter your song's BPM.
+
+### Performance considerations
+
+Visuals render at an adaptive ~24 fps using Canvas 2D to keep phone battery use reasonable. Mobile browsers may throttle animation in background. 3D WebGL is automatically replaced by 2D when GPU/browser support is missing. Detailed animation rigging and foot locking will require further iteration, especially for the 3D figures. This is an independently made nostalgia-inspired music studio, not an official Microsoft product.

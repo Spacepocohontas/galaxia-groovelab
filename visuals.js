@@ -1,0 +1,54 @@
+/* GalaXia GrooveLab Retro Visualizer — original, locally rendered Canvas art inspired
+   by turn-of-the-millennium media-player visualizations. No Microsoft assets/code. */
+(function(root){
+ 'use strict';
+ const modes=['bars','alchemy','battery','ambience','starfield','plasma','tunnel','scope'];
+ const label={bars:'Bars & Waves',alchemy:'Alchemy Orbs',battery:'Battery Pulse',ambience:'Ambience Swirl',starfield:'Dream Starfield',plasma:'Psychedelic Plasma',tunnel:'Neon Tunnel',scope:'Oscilloscope'};
+ const palettes={classic:[210,280,324],cotton:[335,185,285],fire:[2,31,52],ocean:[178,211,257],neon:[315,190,262],monochrome:[203,206,212]};
+ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),PI=Math.PI,TAU=2*PI;
+ const rand=(n)=>{let x=Math.sin(n*78.283+12.617)*43758.5453;return x-Math.floor(x)};
+ const states=new WeakMap();
+ const config={mode:'bars',palette:'classic',trails:0.45,gain:1,random:false,dancers:true};
+ const storageKey='groovelab_retro_visuals_v1';
+ try{const stored=JSON.parse(localStorage.getItem(storageKey)||'{}');for(const k of Object.keys(config))if(Object.prototype.hasOwnProperty.call(stored,k))config[k]=stored[k];}catch(e){}
+ if(!modes.includes(config.mode))config.mode='bars';if(!palettes[config.palette])config.palette='classic';
+ let lastMode=performance.now();let onChange=null;
+ function save(){try{localStorage.setItem(storageKey,JSON.stringify(config));}catch(e){}}
+ function set(key,val){if(!(key in config))return;config[key]=val;
+  if(key==='mode'){if(!modes.includes(config.mode))config.mode='bars';lastMode=performance.now();}
+  if(key==='palette'&&!palettes[val])config.palette='classic';
+  config.gain=clamp(+config.gain||1,.25,2.8);config.trails=clamp(+config.trails||0,0,.92);
+  save();if(onChange)onChange({...config});
+ }
+ function init(canvas){let s=states.get(canvas);if(s)return s;s={ctx:canvas.getContext('2d',{alpha:false}),w:0,h:0,frame:0,spectrum:new Uint8Array(256),wave:new Uint8Array(256),smooth:new Float32Array(96),spots:[],time:0,mode:null};for(let i=0;i<95;i++)s.spots.push({x:rand(i*7+1),y:rand(i*13+8),size:.3+rand(i*4+2)*2.5,speed:.2+rand(i*9+3)*2.8,phase:rand(i+99)*TAU});states.set(canvas,s);return s;}
+ function stroke(g,color,width=1,blur=0){g.strokeStyle=color;g.lineWidth=width;g.shadowBlur=blur;g.shadowColor=color;}
+ function color(h,a=1,s=94,l=64){return `hsla(${((h%360)+360)%360},${s}%,${l}%,${clamp(a,0,1)})`;}
+ function metrics(s,analyser,active){const spectrum=s.spectrum,wave=s.wave;if(analyser){let bins=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(bins);const n=bins.length;for(let i=0;i<256;i++)spectrum[i]=bins[Math.min(n-1,Math.floor(i*n/256))];try{analyser.getByteTimeDomainData(wave);}catch(e){wave.fill(128);}}
+  else{for(let i=0;i<256;i++){spectrum[i]=active?12:Math.round(7+5*Math.sin(s.time*1.5+i*.067));wave[i]=128+Math.round(9*Math.sin(i*.11+s.time*1.2));}}
+  let bass=0,mid=0,treble=0;for(let i=0;i<18;i++)bass+=spectrum[i]/255/18;for(let i=18;i<88;i++)mid+=spectrum[i]/255/70;for(let i=88;i<256;i++)treble+=spectrum[i]/255/168;
+  const quiet=(!analyser||!active);return {bass:clamp(bass*config.gain+(quiet?.12:0),0,1.5),mid:clamp(mid*config.gain+(quiet?.07:0),0,1.5),high:clamp(treble*config.gain+(quiet?.04:0),0,1.5),bins:spectrum,wave};}
+ function bars(g,s,m,hue){let {w,h}=s;const n=56,gap=Math.max(1,w*.0025),bw=w/n;for(let i=0;i<n;i++){const k=Math.floor(Math.pow(i/n,1.25)*220),raw=m.bins[k]/255;const v=raw*config.gain+.045+.025*Math.sin(i*.41+s.time*3);const old=s.smooth[i];const amp=s.smooth[i]=old*.69+v*.31;const bh=clamp(amp,0,1.2)*h*.78;const grad=g.createLinearGradient(0,h,0,h-bh);grad.addColorStop(0,color(hue[0]+i*1.75,.7,98,38));grad.addColorStop(1,color(hue[1]+i*.5,.96,100,73));g.fillStyle=grad;g.fillRect(i*bw,h-bh,bw-gap,bh);g.fillStyle=color(hue[2],.6);g.fillRect(i*bw,h-bh-3,bw-gap,2);}
+  g.beginPath();for(let i=0;i<256;i++){let x=i/255*w,y=h*.48+((m.wave[i]-128)/128)*h*.35+(Math.sin(i*.07+s.time*2)*m.bass*12);i?g.lineTo(x,y):g.moveTo(x,y);}stroke(g,color(hue[2],.93),Math.max(1.3,w/520),10);g.stroke();}
+ function scope(g,s,m,hue){const {w,h}=s;g.lineCap='round';for(let layer=0;layer<3;layer++){g.beginPath();for(let i=0;i<256;i++){const x=i/255*w,y=h*.5+((m.wave[i]-128)/128)*(h*(.32+layer*.075))+Math.sin(i*.035+s.time*2+layer)*h*.04; i?g.lineTo(x,y):g.moveTo(x,y);}stroke(g,color(hue[layer],.8),1.8+layer*.4,12);g.stroke();}g.fillStyle=color(hue[1],.25);g.fillRect(0,h*.498,w,1);}
+ function alchemy(g,s,m,hue){const {w,h}=s,cx=w/2,cy=h/2,n=54,pulse=1+m.bass*2;
+  for(let j=0;j<5;j++){g.beginPath();for(let i=0;i<220;i++){const a=i/220*TAU,r=Math.min(w,h)*(.065+j*.055)*pulse*(1+.18*Math.sin(a*5+s.time*(j%2?1:-1))+.06*Math.sin(a*11-s.time));let x=cx+Math.cos(a+s.time*.12)*r,y=cy+Math.sin(a+s.time*.12)*r; i?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();stroke(g,color(hue[j%3]+j*9,.35+j*.1),Math.max(.8,2-j*.2),18);g.stroke();}
+  for(let i=0;i<n;i++){let pt=s.spots[i],a=pt.phase+s.time*(.18+pt.speed*.055),r=(.04+pt.x*.49)*Math.min(w,h)*(1+m.bass*.7);let x=cx+Math.cos(a)*r*1.55,y=cy+Math.sin(a)*r*.92;let rad=pt.size*(1.1+m.mid*3);g.beginPath();g.arc(x,y,rad,0,TAU);g.fillStyle=color(hue[i%3],.38+pt.y*.35,96,64);g.shadowColor=color(hue[i%3],.85);g.shadowBlur=i%6===0?6+rad:0;g.fill();}g.shadowBlur=0;}
+ function battery(g,s,m,hue){let {w,h}=s;const rows=26,cols=22,dx=w/cols,dy=h/rows,gap=Math.max(.8,Math.min(dx,dy)*.16);for(let x=0;x<cols;x++){const a=m.bins[Math.round(x/cols*160)]/255*config.gain;const level=clamp(.16+a*1.15+m.bass*.22+.11*Math.sin(x*.62+s.time*2.1),0,1);for(let y=0;y<rows;y++){const hit=1-y/rows<level;const light=hit?55+27*y/rows:16;g.fillStyle=color(hue[(x+y)%3]+x*2,hit?.85:.15,95,light);g.fillRect(x*dx+gap,y*dy+gap,dx-gap*2,dy-gap*2);}}}
+ function ambience(g,s,m,hue){let {w,h}=s,cx=w/2,cy=h/2,d=Math.min(w,h);for(let k=0;k<18;k++){let a=s.time*(k%2?-.09:.13)+k*.43;g.beginPath();let turns=210;for(let i=0;i<turns;i++){const t=i/turns*TAU,r=d*(.11+.36*i/turns)*(1+.2*Math.sin(t*5+s.time+k))+m.bass*d*.1;let x=cx+Math.cos(t*1.4+a)*r*(1+.3*Math.sin(s.time*.25+k)),y=cy+Math.sin(t*1.4+a)*r*.75; i?g.lineTo(x,y):g.moveTo(x,y);}stroke(g,color(hue[k%3]+k*4,.13+m.mid*.35),1.5+k*.06,14);g.stroke();}
+  const grad=g.createRadialGradient(cx,cy,0,cx,cy,d*.45);grad.addColorStop(0,color(hue[0],.22+m.bass*.2));grad.addColorStop(1,color(hue[2],0));g.fillStyle=grad;g.fillRect(0,0,w,h);}
+ function starfield(g,s,m,hue){let {w,h}=s,cx=w/2,cy=h/2;for(let i=0;i<95;i++){const p=s.spots[i],life=(s.time*(.04+p.speed*.007)+p.x)%1,ang=p.phase+s.time*.025;const r=Math.pow(life,2)*(Math.max(w,h)*.71),x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r;g.beginPath();g.moveTo(cx+Math.cos(ang)*(r-3-p.size*8),cy+Math.sin(ang)*(r-3-p.size*8));g.lineTo(x,y);stroke(g,color(hue[i%3]+i*.7,.45+life*.52),.35+p.size*.7+(m.bass*2),4+4*m.bass);g.stroke();}g.beginPath();g.arc(cx,cy,Math.min(w,h)*(.08+m.bass*.12),0,TAU);stroke(g,color(hue[1],.8),1.5,25);g.stroke();}
+ function plasma(g,s,m,hue){const {w,h}=s;const cell=Math.max(12,Math.min(23,Math.round(w/33)));for(let y=0;y<h;y+=cell)for(let x=0;x<w;x+=cell){let v=(Math.sin(x*.017+s.time*.7)+Math.sin(y*.023-s.time*.45)+Math.sin((x+y)*.012+s.time*.65)+Math.sin(Math.hypot(x-w*.5,y-h*.5)*.017-s.time*1.1))/4;let intensity=(v+1)/2*(.7+m.bass*.4);g.fillStyle=color(hue[0]+v*130+s.time*8,.38+intensity*.43,95,30+intensity*36);g.fillRect(x,y,cell+1,cell+1);}const grad=g.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,Math.max(w,h)*.65);grad.addColorStop(0,color(hue[2],.2));grad.addColorStop(1,'rgba(0,0,0,.35)');g.fillStyle=grad;g.fillRect(0,0,w,h);}
+ function tunnel(g,s,m,hue){const {w,h}=s,cx=w/2,cy=h/2,N=24;g.save();g.translate(cx,cy);g.rotate(Math.sin(s.time*.12)*.13);for(let i=N;i>=0;i--){let z=((i/N+s.time*.15)%1),size=Math.pow(1-z,1.9)*Math.max(w,h)*.63*(1+m.bass*.3);g.beginPath();for(let k=0;k<=6;k++){let a=k/6*TAU+s.time*.08*(i%2?1:-1);let x=Math.cos(a)*size,y=Math.sin(a)*size*.75; k?g.lineTo(x,y):g.moveTo(x,y);}stroke(g,color(hue[i%3]+i*3,.22+z*.76),.7+z*2,5+z*10);g.stroke();}
+  for(let k=0;k<12;k++){let a=k/12*TAU;g.beginPath();g.moveTo(Math.cos(a)*12,Math.sin(a)*12);g.lineTo(Math.cos(a)*w*.7,Math.sin(a)*h*.7);stroke(g,color(hue[k%3],.18+m.mid*.18),.8,4);g.stroke();}g.restore();}
+ function paint(canvas,analyser,active=false){if(!canvas||!canvas.isConnected||!canvas.clientWidth||!canvas.clientHeight)return;const s=init(canvas);if(!s.ctx)return;const dpr=Math.min(2,root.devicePixelRatio||1),w=Math.max(1,Math.round(canvas.clientWidth*dpr)),h=Math.max(1,Math.round(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;s.w=w;s.h=h;s.ctx.fillStyle='#040612';s.ctx.fillRect(0,0,w,h);}let now=performance.now();if(s.lastRendered&&now-s.lastRendered<41)return;s.lastRendered=now;if(config.random&&active&&now-lastMode>16000){const idx=(modes.indexOf(config.mode)+1)%modes.length;config.mode=modes[idx];lastMode=now;save();if(onChange)onChange({...config});}s.time=now/1000;s.frame++;
+  const g=s.ctx,m=metrics(s,analyser,active),hue=palettes[config.palette]||palettes.classic;
+  if(s.mode!==config.mode){g.fillStyle='#040612';g.fillRect(0,0,w,h);s.mode=config.mode;}
+  g.globalCompositeOperation='source-over';g.fillStyle=`rgba(3,5,17,${clamp(1-config.trails*.78,.18,1)})`;g.fillRect(0,0,w,h);
+  g.globalCompositeOperation=['ambience','starfield','alchemy','tunnel'].includes(config.mode)?'lighter':'source-over';g.shadowBlur=0;
+  try{switch(config.mode){case 'alchemy':alchemy(g,s,m,hue);break;case 'battery':battery(g,s,m,hue);break;case 'ambience':ambience(g,s,m,hue);break;case 'starfield':starfield(g,s,m,hue);break;case 'plasma':plasma(g,s,m,hue);break;case 'tunnel':tunnel(g,s,m,hue);break;case 'scope':scope(g,s,m,hue);break;default:bars(g,s,m,hue);}}finally{g.globalCompositeOperation='source-over';g.shadowBlur=0;}
+  // Fine scanlines, subtle CRT vignette, and custom media-player atmosphere.
+  if(config.palette==='classic'){g.fillStyle='rgba(0,0,0,.10)';const step=Math.max(3,Math.round(3*dpr));for(let y=0;y<h;y+=step)g.fillRect(0,y,w,Math.max(1,dpr*.45));}
+  const v=g.createRadialGradient(w*.5,h*.44,w*.08,w*.5,h*.5,w*.76);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.44)');g.fillStyle=v;g.fillRect(0,0,w,h);
+ }
+ root.GrooveVisuals={config,set,paint,modes,label,palettes,onChange(fn){onChange=fn;},reset(){lastMode=performance.now();}};
+})(window);
