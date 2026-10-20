@@ -62,3 +62,27 @@ Inspired by the **Microsoft Plus! Dancer** Windows XP desktop-dancer experience 
 ### Performance considerations
 
 Visuals render at an adaptive ~24 fps using Canvas 2D to keep phone battery use reasonable. Mobile browsers may throttle animation in background. 3D WebGL is automatically replaced by 2D when GPU/browser support is missing. Detailed animation rigging and foot locking will require further iteration, especially for the 3D figures. This is an independently made nostalgia-inspired music studio, not an official Microsoft product.
+
+## GrooveLab v6 — Keyframed Dance Lab + expanded retro theater
+
+**Free and local:** These upgrades run fully in your browser. No hosted character services, paid models, Microsoft binary assets, or app telemetry are required.
+
+### Character animation
+
+- **15 actual named dance routines** (instead of only sinusoidal torso rotation). New `choreo.js` defines eight-beat pose phrases with independent shoulder/upper-arm, forearm, torso, hip, upper-leg, shin, and head targets. The routines include Moonwalk, Disco Point, Vogue Poses and Body Roll in addition to Bounce, Sway, Goth, Shuffle, Hip-hop, Club, Wild, Popstar, Sultry, Headbang and Rave. Keyframes are eased and blended for smoother transitions.
+- The **Silent dance preview** button lets you watch choreography and try outfits before importing music. It is silent and uses your currently selected BPM (a visual preview, not a real song analyzer).
+- **New moves now** rotates through compatible routines immediately; the Random Dance toggle still automatically changes moves after 4, 8 or 16 beats.
+- Saved dancers can now be **edited**: tap ✎ on a dancer, change their name/look/move/accent, and click **Save selected**. Their on-screen position is preserved.
+- Additional original character looks: Midnight Siren, Goth Academy and Starlight. Choose gothic chokers, black wings, a dark crown or DJ headphones; existing presets and saved character designs continue to work. Wings and headwear are visible in 2D and approximated procedurally in 3D. No submitted reference photos have been uploaded to the public repo.
+- Desktop pop-out and limited iOS video-PiP demonstrations retain their existing platform constraints. iPhone cannot run arbitrary custom floating dancers above other apps.
+
+### Visualizer nostalgia
+
+- **12 original music-reactive visualizations**: the earlier eight plus XP Ribbon Trails, Electric Sunburst, Spectrum Fountain and Digital Rain. All are original Canvas sketches made for GrooveLab, with no Windows Media Player library/assets.
+- Two new palettes (Aero Ice and Neon Candy), and 8/16/30/60-second shuffle intervals.
+- **📸 Save frame** / **📸 Snapshot** creates a PNG of your current visualizer (downloads depend on browser support and local storage).
+- **Retro fullscreen theater** continues to work on phones and desktops. A small `v6 ✦` badge in the header distinguishes this version from old cached pages.
+
+### Testing and limitations
+
+The app's JavaScript passes `node --check` on the dance engine, 3D renderer, Canvas visualizer and application controller. A Playwright desktop + mobile smoke test covers 12 visually distinct visualizer modes, live keyframe changes, character editing/saving, preset accessories, silent preview, responsive layout and fullscreen theater controls, with no page script errors in the test environment. WebGL cannot initialize in the provided headless Chromium environment; the 2D fallback was checked but real 3D quality/performance needs validation on an actual iPhone, Android or supported desktop GPU. Precision onset detection remains heuristic; use BPM Lock or Tap Tempo when it drifts.
