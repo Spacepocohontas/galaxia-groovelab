@@ -86,3 +86,27 @@ Visuals render at an adaptive ~24 fps using Canvas 2D to keep phone battery use 
 ### Testing and limitations
 
 The app's JavaScript passes `node --check` on the dance engine, 3D renderer, Canvas visualizer and application controller. A Playwright desktop + mobile smoke test covers 12 visually distinct visualizer modes, live keyframe changes, character editing/saving, preset accessories, silent preview, responsive layout and fullscreen theater controls, with no page script errors in the test environment. WebGL cannot initialize in the provided headless Chromium environment; the 2D fallback was checked but real 3D quality/performance needs validation on an actual iPhone, Android or supported desktop GPU. Precision onset detection remains heuristic; use BPM Lock or Tap Tempo when it drifts.
+
+
+## v7 — Retro Clip Studio, playback workshop and new dancing
+
+All capabilities below are implemented without paid APIs, sign-in, server-side media processing, or third-party analytics. The app is a static client-side PWA.
+
+- **Retro Clip Studio:** Studio → Record a visualization video. Records up to 15, 30 or 60 seconds as WebM (Chromium) or MP4 where supported. Choose 16:9 landscape or 9:16 vertical. A dedicated canvas continuously draws the chosen visualizer and can composite the existing crew as articulated illustrated sprites, even when live character mode is 3D. The soundtrack is captured using Web Audio `MediaStreamAudioDestinationNode`. Supported MediaRecorder + canvas capture browsers save recordings to the local library and offer an explicit Save clip download link; a Share button appears only when the platform supports sharing a recorded file. Recorded videos are **not** uploaded to any cloud service. Recording needs user interaction; on unsupported iOS/browser combinations use the phone's built-in screen recorder. If a track is paused, recordings may be silent. A 60-second cap is used to reduce mobile memory and storage pressure.
+- **Music playback workshop:** Set A and B points to repeat part of a song; playback speed 0.75×/1×/1.25×/1.5×; optional 15/30/60-minute sleep timer that pauses music after the requested interval. Loop markers reset when the track changes to avoid accidental jumps in another song. Sleep timers require the page to remain open; the browser may throttle timers in background.
+- **Headphones and lock-screen integration:** Media Session API handlers for play, pause, stop, previous/next, seek backward/forward and seek-to. Local track title, playback state, and position are exposed to supported device controls. Availability and background operation remain subject to the browser and OS; iPhone does not permit unrestricted third-party-app overlays.
+- **Retro visualizer tuning:** Visual sensitivity and afterglow trail sliders, with persistent per-device preferences. Existing shuffle, palettes, 12 modes, snapshot, and theater modes remain.
+- **Search imported tracks:** Case-insensitive filter searches the currently displayed local playlist. It does not transmit track names anywhere.
+- **18 dance phrases:** Salsa Steps, Robot Pop and Y2K Groove join the existing 15 original keyframed routines. Existing random switches, beat-reactive accents, character style preferences, and animated sprite parts remain. The algorithm does not guarantee perfect song rhythm detection.
+
+### Quick test
+
+1. Import a music file in Studio and start playback. Select a retro visual mode and adjust Sensitivity/Afterglow.
+2. In Dancers create up to four performers. Leave the crew enabled and return to Studio.
+3. Select portrait or landscape and press **Record video**, then **Finish clip**. Tap **Save clip**, or find the new file in Library.
+4. Practice a musical phrase by pressing **Set start** and **Set end**. Use **Clear loop** when finished.
+5. For an unsupported mobile browser, use the phone's screen-recording feature instead; browser support for MediaRecorder combinations varies.
+
+### Developer testing
+
+`python tests/test_v7.py` exercises desktop and emulated-mobile UI with Playwright Chromium. Video export was independently verified with `ffprobe` to contain video and an audio stream; `ffmpeg volumedetect` confirmed the audio track is not silent when test music was playing. This is not a guarantee that all mobile browsers support the same recording formats.
