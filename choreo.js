@@ -47,7 +47,7 @@ function sample(name,beats,intensity=1,pulse=0){
   out[key]=value*intensity;
  }
  const micro=Math.sin(at*2*PI)*clamp(intensity,0,1.8);
- out.y+=Math.max(0,micro)*2.2+pulse*4;out.zoom=.016*pulse;out.head+=Math.sin(at*PI*.5)*intensity*1.5;
+ out.y+=Math.max(0,micro)*2.2+pulse*4;out.zoom=.016*pulse;out.head+=Math.sin(at*PI*.5)*intensity*2.7;out.torso+=Math.sin(at*PI*.76)*intensity*2.6;out.hip+=Math.cos(at*PI*.48)*intensity*3.2;out.elbowL+=Math.sin(at*PI*.83)*intensity*3;out.elbowR-=Math.sin(at*PI*.83)*intensity*3;out.kneeL+=Math.max(0,Math.sin(at*PI))*intensity*4;out.kneeR+=Math.max(0,-Math.sin(at*PI))*intensity*4;
  return out;
 }
 root.GrooveChoreo={sample,clips,styles,pretty,available:Object.keys(clips)};

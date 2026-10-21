@@ -128,3 +128,7 @@ The Retro Clip Studio's character compositing now respects the current Art Sprit
 ## v9: expressive male silhouettes and rig
 
 Experimental WebGL models now use narrower lower legs, broader masculine shoulders, stronger jawline and smaller eyes for Angelus, Spike and Dark Prince; leather coats gain swaying panels, layered lapels and a belt. WebGL is still procedural low-poly and cannot match detailed Sims-grade character meshes.\n
+
+### v9 Rigged 2D improvements
+
+Angelus, Spike and Dark Prince now use redesigned differentiated SVG character rigs: tapered jaws, restrained masculine eye design, separate hair silhouettes, tailored coats, articulated boots and arms. Updated beat-interpolated choreography adds secondary torso, hip, head, elbow and knee motions to avoid frozen intermediate poses. The rigged 2D mode preserves editable outfit palettes and existing local saved crews.
