@@ -82,6 +82,34 @@
 .extras-disclaimer{font-size:11px!important;color:#a795b9!important;margin-top:12px!important}
 @media(max-width:920px){.v7-tools .extras-wrap{grid-template-columns:1fr}}
 @media(max-width:540px){.retro-enhancers{grid-template-columns:1fr}.extras-panel{padding:12px}.extras-actions{flex-wrap:wrap}.extras-inputs>label:not(.switch){min-width:115px}}
+
+/* Version 7 — contained dancer stage, fashion illustration proportions */
+#danceFloor.dance-floor{position:relative;isolation:isolate;min-height:350px;overflow:hidden;border:1px solid #755485;border-radius:16px;background:radial-gradient(ellipse at 50% 85%,#ad4c9360,transparent 60%),radial-gradient(ellipse at 50% 0,#51367f70,transparent 75%),linear-gradient(160deg,#151224,#24182c);margin:14px 0 19px;padding:0}
+.dance-floor:after{content:"";position:absolute;bottom:26px;left:9%;right:9%;height:1px;background:linear-gradient(90deg,transparent,#c176c3,transparent);pointer-events:none}
+.dance-floor-head{position:absolute;left:0;top:0;right:0;z-index:2;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 14px;color:#f7d8f7;background:linear-gradient(#21152dcc,transparent);font-size:10px;font-weight:900;letter-spacing:1px}
+.dance-floor-head small{font-size:10px;font-weight:500;letter-spacing:0;color:#b6a0c7}
+.dance-floor-empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#c5add3;font-size:12px;line-height:1.7;pointer-events:none;padding:40px}
+.dance-floor.has-crew .dance-floor-empty{display:none}
+#floatingCrew{pointer-events:none}
+#floatingCrew.on-stage{position:absolute;inset:0;overflow:hidden;z-index:3}
+#floatingCrew.on-stage .avatar-float{position:absolute;z-index:4}
+.avatar-float{width:105px;height:220px;filter:drop-shadow(0 12px 12px #0008)}
+.avatar-float .avatar-sprite,.avatar-float canvas{width:100%;height:100%;pointer-events:none}
+.avatar-preview{min-height:330px}
+.avatar-preview svg.avatar-adult{width:178px;height:300px;filter:drop-shadow(0 10px 18px #0009)}
+.avatar-float .avatar-sprite .sprite-arm-left{transform-origin:56px 116px}
+.avatar-float .avatar-sprite .sprite-arm-right{transform-origin:104px 116px}
+.avatar-sprite.avatar-adult .sprite-leg-left{transform-origin:67px 174px}
+.avatar-sprite.avatar-adult .sprite-leg-right{transform-origin:94px 174px}
+.avatar-sprite.avatar-adult .sprite-shin-left{transform-origin:60px 244px}
+.avatar-sprite.avatar-adult .sprite-shin-right{transform-origin:98px 244px}
+.avatar-sprite.avatar-adult .sprite-head{transform-origin:81px 111px}
+.avatar-sprite.avatar-adult .sprite-torso{transform-origin:80px 176px}
+.avatar-sprite.avatar-adult .sprite-hair-back{transform-origin:81px 51px}
+.avatar-sprite.avatar-adult .sprite-forearm-left{transform-origin:45px 154px}
+.avatar-sprite.avatar-adult .sprite-forearm-right{transform-origin:115px 154px}
+.avatar-float .sprite-arm-left,.avatar-float .sprite-arm-right{animation:none!important}
+@media(max-width:700px){#danceFloor.dance-floor{min-height:300px}.avatar-float{width:86px;height:185px}.dance-floor-head{align-items:flex-start;flex-direction:column;gap:2px}.avatar-preview{min-height:310px}}
 </style></head><body>
 <div class="app"><aside class="sidebar"><div class="brand"><span class="brand-mark">✦</span><span>GalaXia<small>GROOVELAB</small></span></div><nav class="nav" aria-label="Studio sections"><button class="active" data-view="studio" title="Studio"><span>🎛</span><span class="nav-text">Studio</span></button><button data-view="voice" title="Voice FX"><span>🎙</span><span class="nav-text">Voice FX</span></button><button data-view="pads" title="Sampler"><span>🎹</span><span class="nav-text">Soundboard</span></button><button data-view="avatars" title="Characters"><span>💃</span><span class="nav-text">Dancers</span></button><button data-view="library" title="Library"><span>📁</span><span class="nav-text">Library</span></button></nav><div class="sidebar-bottom"><strong>✦ MADE TO PLAY</strong><p>Record. Remix. Build beats. Bring your own tiny backup dancers. All in your browser.</p></div></aside>
 <main class="main"><div class="top"><span class="breadcrumb" id="breadcrumb">HOME / STUDIO</span><span class="release-mark" title="Dance Lab + Retro Visualizer update">v7 ✦</span><div class="top-right"><span class="status" id="deviceStatus">● LOCAL STUDIO</span><button class="icon-btn crew-shortcut" id="crewQuick" title="Toggle dancers over the page" aria-label="Toggle dancers over the page" aria-pressed="true">💃</button><button class="icon-btn" id="fullscreen" title="Toggle fullscreen" aria-label="Toggle fullscreen">⛶</button></div></div>
@@ -99,6 +127,6 @@
 <script src="/visuals.js"></script>
 <script src="/rhythm.js"></script>
 <script src="/choreo.js"></script>
-<script src="/dancers3d.js"></script>
-<script src="/extras.js"></script>
+<script src="/dancers3d.js"></script><script src="/dancer-upgrade.js"></script>
+
 <script src="/core.js"></script><script>if('serviceWorker' in navigator && window.isSecureContext){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script></body></html>

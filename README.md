@@ -110,3 +110,8 @@ All capabilities below are implemented without paid APIs, sign-in, server-side m
 ### Developer testing
 
 `python tests/test_v7.py` exercises desktop and emulated-mobile UI with Playwright Chromium. Video export was independently verified with `ffprobe` to contain video and an audio stream; `ffmpeg volumedetect` confirmed the audio track is not silent when test music was playing. This is not a guarantee that all mobile browsers support the same recording formats.
+
+
+## v7 Dance Floor & adult-proportioned sprites
+
+The Dancers page now hosts the moving crew in a contained 350px dance floor. It no longer obscures form controls, while dancers remain freely draggable over the Studio when switching out of character editing. On-stage dragging is bounded to the dance floor and positions remain local in browser storage. The 2D artwork has been redrawn as adult-proportioned original vector fashion figures, with shared SVG groups for joint choreography; 3D is explicitly marked as experimental low-poly. The orphaned extras.js request was removed. This is an original illustration improvement, not a photographic avatar rig or motion capture.
