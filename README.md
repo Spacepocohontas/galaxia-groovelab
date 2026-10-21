@@ -73,7 +73,7 @@ Visuals render at an adaptive ~24 fps using Canvas 2D to keep phone battery use 
 - The **Silent dance preview** button lets you watch choreography and try outfits before importing music. It is silent and uses your currently selected BPM (a visual preview, not a real song analyzer).
 - **New moves now** rotates through compatible routines immediately; the Random Dance toggle still automatically changes moves after 4, 8 or 16 beats.
 - Saved dancers can now be **edited**: tap ✎ on a dancer, change their name/look/move/accent, and click **Save selected**. Their on-screen position is preserved.
-- Additional original character looks: Midnight Siren, Goth Academy and Starlight. Choose gothic chokers, black wings, a dark crown or DJ headphones; existing presets and saved character designs continue to work. Wings and headwear are visible in 2D and approximated procedurally in 3D. No submitted reference photos have been uploaded to the public repo.
+- Additional original character looks: Midnight Siren, Goth Academy and Starlight. Choose gothic chokers, black wings, a dark crown or DJ headphones; existing presets and saved character designs continue to work. Wings and headwear are visible in 2D and approximated procedurally in 3D. The v8 art-sprite image cutouts were derived from reference images supplied by the project owner and are now included in this public project. Remove these assets if you do not want those images hosted publicly.
 - Desktop pop-out and limited iOS video-PiP demonstrations retain their existing platform constraints. iPhone cannot run arbitrary custom floating dancers above other apps.
 
 ### Visualizer nostalgia
@@ -112,6 +112,14 @@ All capabilities below are implemented without paid APIs, sign-in, server-side m
 `python tests/test_v7.py` exercises desktop and emulated-mobile UI with Playwright Chromium. Video export was independently verified with `ffprobe` to contain video and an audio stream; `ffmpeg volumedetect` confirmed the audio track is not silent when test music was playing. This is not a guarantee that all mobile browsers support the same recording formats.
 
 
-## v7 Dance Floor & adult-proportioned sprites
+## v8 — Art Sprite Studio and safer character editor
 
-The Dancers page now hosts the moving crew in a contained 350px dance floor. It no longer obscures form controls, while dancers remain freely draggable over the Studio when switching out of character editing. On-stage dragging is bounded to the dance floor and positions remain local in browser storage. The 2D artwork has been redrawn as adult-proportioned original vector fashion figures, with shared SVG groups for joint choreography; 3D is explicitly marked as experimental low-poly. The orphaned extras.js request was removed. This is an original illustration improvement, not a photographic avatar rig or motion capture.
+The owner-provided visual-reference images inspired an **Art Sprites** presentation mode with 10 transparent, optimized WebP cutouts (`assets/sprites/*.webp`). Artwork retains the original aesthetic but moves as an intact cutout (music-reactive sway, bounce, subtle tilt); **it is not a skeleton-rigged image**. **Rigged 2D** is separately available for arm/leg movement, and **low-poly 3D** remains experimental, not Sims-quality. A three-way mode selector and cycle button distinguish them.
+
+The character editor no longer gets buried beneath floating dancers: while editing, the overlay defaults to hidden and saved dancers appear in a dedicated rehearsal stage. Click a stage dancer to select it for editing. You can opt back into the over-page dancers when editing if desired, and separately adjust the floating dancers' scale. Existing saved dancers migrate their display mode to the new art mode once; preferences and crew objects remain on the device.
+
+New Art Sprite controls provide a preset artwork selector, plus **Use my own character image** (PNG/WebP/JPEG) for per-character uploads. Uploaded images are resized locally to 700px on their longest side, saved with the character on the browser via localStorage, and are never uploaded to a server. A cutout/transparent image yields best results; a photo with a background stays rectangular. Art Sprite mode uses fixed-image animation, while the SVG rig mode remains editable using hair, clothing and color controls. 3D remains basic procedural geometry.
+
+The Retro Clip Studio's character compositing now respects the current Art Sprite artwork rather than substituting the old SVG character, when a live image is present. Tested in Chromium on desktop and simulated mobile; desktop/mobile browser behavior may differ from iOS Safari. Audio onset detection is approximate.
+
+**Privacy notice:** The bundled Art Sprite cutouts come from visual references shared for this project. The GitHub repository and hosted site are public; those bundled assets are publicly retrievable. User-uploaded custom images, imported music, and recordings remain local on the device.

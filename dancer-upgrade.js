@@ -44,7 +44,7 @@ window.GrooveSprite = function(a){
  (longhair?'<path d="M53 47Q45 129 43 203M109 47Q121 132 116 206" fill="none" stroke="'+hair+'" stroke-width="9" opacity=".92"/>':'')+
  footwear+'</svg>';
 };
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('danceStage'))return;
  const root=document.getElementById('avatars'),crew=document.getElementById('floatingCrew'),preview=document.getElementById('avatarPreview');
  if(!root||!crew||!preview)return;
  const card=preview.closest('.card');if(!card)return;

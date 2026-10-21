@@ -135,14 +135,16 @@
   function dancerFrame(a,liveNode,now){
    const id=String(a.id),entry=spriteCache.get(id)||{image:new Image(),signature:'',at:0,loaded:false,loading:false};
    if(now-entry.at>120&&!entry.loading){
+    const art=liveNode?.querySelector('img.avatar-art');
     const svg=liveNode?.querySelector('svg.avatar-sprite');
-    const markup=svg?new XMLSerializer().serializeToString(svg):api.avatarSvg(a);
-    if(markup!==entry.signature){
-     entry.signature=markup;entry.loading=true;
+    const markup=art?null:(svg?new XMLSerializer().serializeToString(svg):api.avatarSvg(a));
+    const source=art?.currentSrc||art?.src||('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(markup));
+    if(source!==entry.signature){
+     entry.signature=source;entry.loading=true;entry.loaded=false;
      const next=new Image();
      next.onload=()=>{entry.image=next;entry.loaded=true;entry.loading=false;};
      next.onerror=()=>{entry.loading=false;};
-     next.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(markup);
+     next.src=source;
     }
     entry.at=now;
    }
@@ -152,13 +154,14 @@
   function drawDancers(g,w,h,now){
    if(!$('clipDancers').checked)return;
    const dancers=api.getCrew().slice(0,4);if(!dancers.length)return;
-   const baseH=(w<h?h*.25:h*.43),bodyH=clamp(baseH,125,330),bodyW=bodyH*120/178;
+   const baseH=(w<h?h*.25:h*.43),bodyH=clamp(baseH,125,330);
    for(let i=0;i<dancers.length;i++){
     const a=dancers[i],live=[...document.querySelectorAll('.avatar-float')].find(n=>n.dataset.id===String(a.id));
     const image=dancerFrame(a,live,now);
     const sway=Math.sin(now/420+i*1.6)*w*.008,step=Math.abs(Math.sin(now/340+i*1.33))*h*.008;
     const cx=w*(i+1)/(dancers.length+1)+sway,top=h-bodyH-h*.045-step;
-    if(image.loaded){g.save();g.shadowBlur=18;g.shadowColor='#de6bbd9c';g.drawImage(image.image,cx-bodyW/2,top,bodyW,bodyH);g.restore();}
+    if(image.loaded){const ratio=Math.min(1.05,Math.max(.28,(image.image.naturalWidth||120)/(image.image.naturalHeight||178))),bodyW=bodyH*ratio;
+     g.save();g.shadowBlur=18;g.shadowColor='#de6bbd9c';g.drawImage(image.image,cx-bodyW/2,top,bodyW,bodyH);g.restore();}
     g.fillStyle='#fbdffa';g.font=`bold ${Math.max(12,Math.round(w*.018))}px system-ui`;g.textAlign='center';g.shadowBlur=5;g.shadowColor='#10091f';g.fillText(a.name||'Dancer',cx,h-h*.028);g.shadowBlur=0;
    }
   }
