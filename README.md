@@ -123,3 +123,8 @@ New Art Sprite controls provide a preset artwork selector, plus **Use my own cha
 The Retro Clip Studio's character compositing now respects the current Art Sprite artwork rather than substituting the old SVG character, when a live image is present. Tested in Chromium on desktop and simulated mobile; desktop/mobile browser behavior may differ from iOS Safari. Audio onset detection is approximate.
 
 **Privacy notice:** The bundled Art Sprite cutouts come from visual references shared for this project. The GitHub repository and hosted site are public; those bundled assets are publicly retrievable. User-uploaded custom images, imported music, and recordings remain local on the device.
+
+
+## v9: expressive male silhouettes and rig
+
+Experimental WebGL models now use narrower lower legs, broader masculine shoulders, stronger jawline and smaller eyes for Angelus, Spike and Dark Prince; leather coats gain swaying panels, layered lapels and a belt. WebGL is still procedural low-poly and cannot match detailed Sims-grade character meshes.\n
