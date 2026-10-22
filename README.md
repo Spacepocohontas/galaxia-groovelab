@@ -132,3 +132,8 @@ Experimental WebGL models now use narrower lower legs, broader masculine shoulde
 ### v9 Rigged 2D improvements
 
 Angelus, Spike and Dark Prince now use redesigned differentiated SVG character rigs: tapered jaws, restrained masculine eye design, separate hair silhouettes, tailored coats, articulated boots and arms. Updated beat-interpolated choreography adds secondary torso, hip, head, elbow and knee motions to avoid frozen intermediate poses. The rigged 2D mode preserves editable outfit palettes and existing local saved crews.
+
+
+### v10 Face & motion polish
+
+Based on the 3D/2D mobile screenshots, refined the procedural WebGL rig: 17% smaller male heads, less protruding eyes and tiny mouths, higher-resolution head geometry, layered tapered hair instead of thick strands, animated head tilt, pose-driven torso/hips/legs, narrower grounded footwork, refined coat highlights and softer lighting. Reduced whole-body stage tilt to stop characters looking like tilted cardboard. Made 2D Spike's blonde hair short and tousled rather than crowned, and increased stage figure readability. This remains a zero-dependency low-poly renderer; it is not a full quality game model or imported GLB rig.

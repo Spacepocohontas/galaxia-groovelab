@@ -12,7 +12,7 @@ function maleSprite(a){
  const shirt=spike?'#f5ede6':prince?'#272031':'#0d0d15';
  const gild=prince?'#9f7b92':spike?'#99969e':'#b8acb7';
  const hairshape=spike?
- '<path d="M54 47L51 32L63 35L68 19L78 30L85 15L94 32L106 23L111 39L118 39L111 53Q91 41 80 45Q64 43 54 47Z" fill="url(#hair-'+id+')" stroke="#a9a08a" stroke-width="1.5"/><path d="M62 34L70 43M87 26L89 41M106 34L99 43" stroke="#fff4d8" stroke-width="2.2"/>':
+ '<path d="M53 48Q54 34 66 32L73 35L79 27L85 33L97 30L105 37L111 38L111 52Q95 42 81 44Q67 44 53 48Z" fill="url(#hair-'+id+')" stroke="#a9a08a" stroke-width="1.5"/><path d="M65 36L70 43M83 33L86 41M100 36L96 44" stroke="#fff4d8" stroke-width="2.2"/>':
  '<path d="M55 49Q43 23 65 21Q98 12 112 32L114 52L102 42L85 36L68 40Z" fill="url(#hair-'+id+')" stroke="#281c29" stroke-width="1.3"/><path d="M70 30Q85 24 105 36" fill="none" stroke="#ad9eaa" opacity=".55" stroke-width="2"/><path d="M102 32Q96 41 84 49L94 47" fill="'+hair+'"/>';
  const neckline='<path d="M69 107L69 120Q81 129 93 120L93 107" fill="'+skin+'"/>';
  const visage='<path d="M56 58Q53 43 67 41L98 40Q109 47 108 62L104 90Q101 101 85 109L78 109Q63 102 58 91Z" fill="'+skin+'" stroke="#a37c81" stroke-width="1.4"/>'+
