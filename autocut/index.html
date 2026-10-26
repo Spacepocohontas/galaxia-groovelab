@@ -59,6 +59,12 @@
        <label class="sr-only" for="directorPrompt">Editing instructions</label><textarea id="directorPrompt" placeholder="Make it dark & cinematic. Rapid cuts on bass hits, glitchy transitions during verses, slow motion feeling before the big drop. Keep my full original song length..."></textarea>
        <div class="director-actions"><span>TRY:</span><button data-prompt="Fast glitchy edits on every bass hit">Rapid glitch</button><button data-prompt="Dark cinematic shots with long dramatic holds">Dark cinema</button><button data-prompt="Dreamy slow motion style, soft transitions">Dreamy</button></div>
       </div>
+      <details class="gpt-bridge"><summary>✦ ChatGPT Director bridge · free, no API key</summary>
+       <p>Hand the shot list to ChatGPT, ask it to design an edit, then paste its JSON. AutoCut performs the actual cuts while preserving your soundtrack length.</p>
+       <div class="gpt-actions"><button id="copyGPTBrief" class="btn subtle">Copy instructions for ChatGPT</button><a href="https://chatgpt.com/" class="gpt-link" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a></div>
+       <label for="gptPlan">PASTE CHATGPT'S EDIT JSON</label><textarea id="gptPlan" spellcheck="false" placeholder='{"shots":[{"mediaIndex":0,"beats":2,"effect":"glitch","transition":"flash"}]}'></textarea>
+       <button id="applyGPTPlan" class="btn subtle">✦ Apply ChatGPT's scene decisions</button>
+      </details>
       <div class="action-row"><button id="generateBtn" class="btn primary">✦ &nbsp; Generate my edit <span>→</span></button><button id="shuffleBtn" class="btn subtle" title="Regenerate with different source ordering">⤨ Reshuffle</button></div>
       <p id="directorOutput" class="director-output" role="status">Choose a preset or describe your direction, then generate a timeline.</p>
      </section>
