@@ -250,7 +250,7 @@ function updateDanceMotion(){
   const eased=Math.min(1,Math.max(0,(now-Number(d.dataset.transitionAt||0))/360));const mix=eased*eased*(3-2*eased);
   const choreo=window.GrooveChoreo;const current=choreo?choreo.sample(move,clock+i*.13,intensity,beatPulse):motionFor(move,phase,intensity,beatPulse),old=choreo?choreo.sample(prev,clock+i*.13,intensity,beatPulse):motionFor(prev,phase,intensity,beatPulse);
   const pose=motionBlend(old,current,mix);
-  const x=pose.x*.78,y=pose.y*.82,rot=clamp(pose.rot,-10,10)*.74;
+  const x=pose.x*.78,y=pose.y*.82,rot=clamp(pose.rot,-10,10)*.38;
   const scale=1+beatPulse*.12*danceIntensity+pose.zoom;
   const model=d.querySelector('canvas.avatar-canvas');
   if(model&&window.Groove3D&&(!d.classList.contains('stage-avatar')||!$('avatars').classList.contains('hidden-section'))){const a=crew.find(c=>String(c.id)===d.dataset.id);if(a)Groove3D.draw(model,a,t,move,intensity,beatPulse,prev,mix,clock,pose);}
