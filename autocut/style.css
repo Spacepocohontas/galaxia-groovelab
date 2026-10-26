@@ -5,3 +5,14 @@
 @media(max-width:490px){.intro h1{font-size:34px}.intro{min-height:285px}.pill-row{gap:5px}.pill-row span{font-size:8px;padding:6px}.dropgrid{gap:8px}.drop-target{padding:8px;min-height:145px}.drop-target b{font-size:10px}.drop-target small{font-size:9px}.browse{font-size:9px}.styles-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-row{grid-template-columns:37px 1fr 1fr;gap:6px}.scene-row select:last-child{grid-column:2 / 4}.topbar-left{gap:6px}.crumb{font-size:8px}.beta{font-size:7px}.top-link{font-size:9px;padding:8px}.panel{padding:14px}.panel-heading h2{font-size:15px}.info-chip{font-size:7px}.action-row .btn{font-size:10px;padding:11px}.wavebar{padding:9px}footer{flex-wrap:wrap;line-height:1.6}}
 
 .tempo-picker{display:flex;align-items:center;gap:11px;flex-wrap:wrap}.tempo-picker label{font-size:9px;color:#7c6e89;letter-spacing:.8px}.tempo-picker input{margin-left:6px;width:64px;background:#291c37;color:#f0daf9;border:1px solid #735288;border-radius:5px;padding:5px;font-size:11px}
+
+.gpt-bridge{margin-top:14px;border:1px solid #634776;background:#261a33;border-radius:10px;padding:13px}
+.gpt-bridge summary{color:#f0c4fa;font-size:11px;font-weight:800;cursor:pointer;list-style:none}.gpt-bridge summary::-webkit-details-marker{display:none}
+.gpt-bridge summary:before{content:"⌄";margin-right:8px;color:#b584d1}
+.gpt-bridge[open] summary{margin-bottom:11px}
+.gpt-bridge p{font-size:10px;color:#b8a0c5;line-height:1.65}
+.gpt-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.gpt-actions .btn{font-size:10px}
+.gpt-link{font-size:10px;color:#edb4fa;text-decoration:underline}
+.gpt-bridge label{font-size:9px;letter-spacing:.9px;color:#b4a0be;font-weight:800;display:block;margin-bottom:7px}
+.gpt-bridge textarea{width:100%;min-height:85px;resize:vertical;background:#110c19;color:#d7c5de;border:1px solid #604470;padding:11px;border-radius:7px;font:11px ui-monospace,monospace}
+.gpt-bridge #applyGPTPlan{width:100%;margin-top:9px;color:#f3d6fc;border-color:#7a548b}
