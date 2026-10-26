@@ -210,6 +210,42 @@ $('previewStop').addEventListener('click',()=>{stopPreview();seek(0)});
 $('previewSeek').addEventListener('input',()=>seek(Number($('previewSeek').value)/1000*duration()));
 wave.addEventListener('click',e=>{const x=(e.clientX-wave.getBoundingClientRect().left)/wave.getBoundingClientRect().width;seek(clamp(x,0,1)*(state.analysis?.duration||0))});
 $('exportBtn').addEventListener('click',exportVideo);
+
+function chatGPTBrief(){
+ if(!state.analysis||!state.media.length){status('Load your soundtrack & video clips before sending a brief to ChatGPT.','error');return}
+ const prompt='Act as a music-video creative director. Return ONLY a JSON object with a "shots" array: each shot has mediaIndex (zero-based integer), beats (number 1-12), effect (one of natural,punch,noir,glitch,dream,vhs), and transition (one of cut,flash,dissolve,glitch). You may add a "style" (one of Bass Impact, Dark Cinema, Glitchcore, Dreamwave, 90s Alt, Clean Social) and "note". The webpage will repeat your shot pattern to fill the soundtrack. Design compelling rhythmic cuts, varied shots, and coherent transitions. Do not add markdown or comments. CRITICAL: Keep project video duration equal to the exact uploaded song duration; no time stretch or soundtrack edits.\n\nSong: '+state.audioFile.name+'\nExact duration seconds: '+state.analysis.duration.toFixed(5)+'\nEstimated BPM: '+state.analysis.bpm+' ('+state.analysis.confidence+')\nVideo format: '+$('aspect').value+'\nDirection: '+($('directorPrompt').value.trim()||state.style)+'\nAvailable media:\n'+state.media.slice(0,40).map((m,i)=>i+': '+m.name+' ('+m.kind+(m.kind==='video'?', '+m.duration.toFixed(2)+'s':'')+')').join('\n')+'\n\nSuggest about 8-24 shots. Prefer cuts on beats & dramatic passages.';
+ navigator.clipboard?.writeText(prompt).then(()=>{status('ChatGPT brief copied. Open ChatGPT, paste it, then paste its JSON response here.','ok')}).catch(()=>{window.prompt('Copy this editing brief:',prompt);status('Copy the editing brief, then paste it into ChatGPT.')});
+ if(!navigator.clipboard)window.prompt('Copy this editing brief:',prompt);
+}
+function applyChatGPTPlan(){
+ if(!state.analysis||!state.media.length){status('Load music & footage first.','error');return}
+ let text=$('gptPlan').value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+ let obj;try{obj=JSON.parse(text)}catch{status('Paste a valid JSON edit plan returned by ChatGPT.','error');return}
+ const shots=Array.isArray(obj.shots)?obj.shots.slice(0,200):[];
+ if(!shots.length){status('ChatGPT JSON must contain a non-empty "shots" list.','error');return}
+ if(PRESETS[obj.style])chooseStyle(obj.style);
+ stopPreview();
+ const length=duration(),beat=60/state.analysis.bpm;
+ const effects=['natural','punch','noir','glitch','dream','vhs'],transitions=['cut','flash','dissolve','glitch'];
+ const segments=[];let start=0,index=0;
+ while(start<length-.00001&&segments.length<2400){
+  const p=shots[index%shots.length];
+  if(!p||typeof p!=='object'){status('Each shot needs an object with mediaIndex & beats.','error');return}
+  const mediaIndex=clamp(Math.floor(Number(p.mediaIndex)||0),0,state.media.length-1),m=state.media[mediaIndex];
+  const span=clamp(Number(p.beats)||4,1,12)*beat;
+  const end=Math.min(length,start+span);
+  segments.push({id:'s'+index,start:Number(start.toFixed(5)),end:Number(end.toFixed(5)),mediaId:m.id,sourceOffset:0,transition:index===0?'cut':transitions.includes(p.transition)?p.transition:'cut',effect:effects.includes(p.effect)?p.effect:PRESETS[state.style].effect});
+  start=end;index++;
+ }
+ if(segments.length)segments[segments.length-1].end=length;
+ const plan={segments,duration:length,style:state.style,director:'ChatGPT-authored edit: '+String(obj.note||'Creative shot plan').slice(0,250)};
+ if(!assertContinuous(plan)){status('ChatGPT scene plan did not fill the timeline.','error');return}
+ state.plan=plan;updateTimeline();$('emptyPreview').hidden=true;syncSummary();seek(0);
+ $('directorOutput').textContent='✦ '+plan.director+' · '+segments.length+' scenes · exact planned duration '+length.toFixed(2)+' seconds.';
+ status('ChatGPT decisions applied to your editable timeline. Render when ready.','ok');
+}
+$('copyGPTBrief').addEventListener('click',chatGPTBrief);
+$('applyGPTPlan').addEventListener('click',applyChatGPTPlan);
 $('downloadEdl').addEventListener('click',savePlan);
 audio.addEventListener('ended',()=>{if(!audio.loop){stopPreview();seek(duration())}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.playing)stopPreview()});
