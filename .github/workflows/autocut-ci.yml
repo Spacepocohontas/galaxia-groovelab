@@ -20,8 +20,11 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
-      - name: Parse browser script
-        run: node --check autocut/app.js
+      - name: Parse browser and canvas effects modules
+        run: |
+          node --check autocut/app.js
+          node --check autocut/engine.mjs
+          node --check autocut/effects.mjs
       - name: Validate beat engine
         run: npm test
         working-directory: autocut

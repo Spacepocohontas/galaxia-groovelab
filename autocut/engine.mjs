@@ -1,14 +1,55 @@
-/* GalaXia AutoCut — deterministic local edit engine, no uploads required. */
-export const PRESETS={
-  'Bass Impact':{beats:2,transition:'flash',effect:'punch',description:'Fast bass hits, hard cuts, bright impacts.'},
-  'Dark Cinema':{beats:4,transition:'dissolve',effect:'noir',description:'Moody pacing, fades & cinematic shadows.'},
-  'Glitchcore':{beats:2,transition:'glitch',effect:'glitch',description:'Rapid cuts, RGB interference & stutters.'},
-  'Dreamwave':{beats:6,transition:'dissolve',effect:'dream',description:'Floaty motion, slower shots & soft light.'},
-  '90s Alt':{beats:3,transition:'flash',effect:'vhs',description:'Tape grit, sharp hits & vintage chaos.'},
-  'Clean Social':{beats:3,transition:'cut',effect:'natural',description:'Crisp edits made for short-form video.'}
+/* GalaXia AutoCut: varied, beat-aware, deterministic local video editing. */
+const style = (category, beats, effects, transitions, motions, description) =>
+  ({ category, beats, effects, transitions, motions, description });
+
+export const EFFECTS = [
+  'natural', 'punch', 'noir', 'glitch', 'dream', 'vhs', 'bloom', 'cyber',
+  'duotone', 'grain', 'monochrome', 'neon', 'filmBurn', 'ghost', 'kaleido',
+  'mirror', 'split', 'pixel', 'solarize', 'halftone', 'blur', 'chrome',
+  'scanline', 'vignette'
+];
+export const TRANSITIONS = [
+  'cut', 'flash', 'dissolve', 'glitch', 'whipLeft', 'whipRight', 'zoom',
+  'wipe', 'dip', 'spin', 'slideUp', 'snap', 'filmBurn'
+];
+export const MOTIONS = [
+  'static', 'pushIn', 'pullOut', 'panLeft', 'panRight', 'panUp',
+  'panDown', 'tiltLeft', 'tiltRight', 'bounce', 'spin', 'drift', 'shake'
+];
+
+export const PRESETS = {
+  'Bass Impact': style('Viral', 2, ['punch','glitch','chrome','neon','duotone'], ['flash','zoom','snap','glitch'], ['pushIn','shake','bounce','pullOut'], 'Hard bass drops, punch zooms, impact edits.'),
+  'Beat Rush': style('Viral', 1, ['punch','neon','chrome','solarize'], ['snap','whipLeft','whipRight','flash'], ['pushIn','panLeft','panRight','shake'], 'Quick-fire cuts that land on the beat.'),
+  'Trend Sync': style('Viral', 2, ['natural','bloom','duotone','punch'], ['zoom','snap','wipe','cut'], ['pushIn','drift','pullOut','panLeft'], 'Short-form social pacing, fresh angles every scene.'),
+  'Velocity Cuts': style('Viral', 1.5, ['punch','chrome','glitch','blur'], ['whipLeft','whipRight','zoom','snap'], ['panLeft','panRight','pushIn','spin'], 'Fast/slow footage movement with whip transitions.'),
+  'Flash Zoom': style('Viral', 1, ['punch','neon','solarize','chrome'], ['flash','zoom','snap','cut'], ['pushIn','bounce','pullOut','shake'], 'Camera punches and sharp transitions on strong beats.'),
+  'Hyperpop Frenzy': style('Viral', 1, ['pixel','glitch','solarize','halftone','duotone'], ['glitch','snap','wipe','whipRight'], ['spin','bounce','pushIn','panRight'], 'Candy-colored glitch edits & energetic reframes.'),
+  'Clean Social': style('Viral', 3, ['natural','bloom','punch','vignette'], ['cut','wipe','dissolve','zoom'], ['pushIn','pullOut','panLeft','drift'], 'Crisp, readable montage edits with varied angles.'),
+  'Dark Cinema': style('Cinematic', 4, ['noir','vignette','filmBurn','grain','monochrome'], ['dissolve','dip','wipe','cut'], ['drift','pushIn','panLeft','tiltLeft'], 'Moody compositions, shadows & dramatic fades.'),
+  'Epic Trailer': style('Cinematic', 4, ['chrome','punch','filmBurn','noir','bloom'], ['dip','zoom','flash','spin'], ['pushIn','tiltLeft','pullOut','panUp'], 'A rising cinematic edit with major hit moments.'),
+  'Noir Thriller': style('Cinematic', 5, ['noir','monochrome','grain','vignette'], ['dip','dissolve','wipe','snap'], ['panLeft','drift','pushIn','tiltRight'], 'Slow suspense, dark contrast & sudden cuts.'),
+  'Heartbreak Film': style('Cinematic', 6, ['dream','filmBurn','grain','vignette'], ['dissolve','dip','wipe'], ['pullOut','drift','panRight','tiltLeft'], 'Melancholic memory montage with subtle movement.'),
+  'Dreamwave': style('Cinematic', 6, ['dream','bloom','ghost','vignette'], ['dissolve','wipe','zoom'], ['drift','pullOut','panUp','tiltRight'], 'Airy dreamlight, soft movement & glowing cuts.'),
+  'Romantic Slowburn': style('Cinematic', 7, ['bloom','dream','filmBurn','grain'], ['dissolve','wipe','dip'], ['pushIn','drift','pullOut','panLeft'], 'Long-lingering shots and gentle transitions.'),
+  '90s Alt': style('Retro', 3, ['vhs','grain','monochrome','duotone','filmBurn'], ['flash','cut','dip','snap'], ['shake','pushIn','panRight','tiltLeft'], 'Gritty VHS tape meets post-punk music video.'),
+  'VHS Tape': style('Retro', 4, ['vhs','grain','scanline','filmBurn'], ['cut','glitch','dip','wipe'], ['drift','panLeft','pullOut','shake'], 'Tracking lines, tape texture & nostalgic reframing.'),
+  'Y2K Camcorder': style('Retro', 2.5, ['chrome','scanline','pixel','bloom'], ['zoom','snap','cut','whipLeft'], ['pushIn','bounce','tiltRight','panUp'], 'Shiny digital-camera nostalgia & video noise.'),
+  'Retro Rave': style('Retro', 2, ['neon','solarize','duotone','ghost','chrome'], ['flash','spin','glitch','zoom'], ['spin','bounce','panLeft','panRight'], 'Club-energy color shifts & old-school rave cuts.'),
+  'Glitchcore': style('Experimental', 2, ['glitch','pixel','cyber','duotone','solarize'], ['glitch','snap','whipRight','flash'], ['shake','pushIn','panRight','tiltRight'], 'Digital distortion, signal breakup & RGB splits.'),
+  'Neon Pulse': style('Experimental', 2.5, ['neon','cyber','bloom','chrome'], ['flash','dissolve','zoom','snap'], ['pushIn','drift','panUp','bounce'], 'Light-trail energy synchronized to the bass.'),
+  'Ghost Trail': style('Experimental', 4, ['ghost','dream','bloom','blur'], ['dissolve','wipe','dip'], ['drift','pullOut','panLeft','tiltLeft'], 'Double exposures, echoes & floating motion.'),
+  'Mirrorverse': style('Experimental', 3, ['mirror','split','kaleido','chrome'], ['spin','wipe','snap','zoom'], ['spin','panRight','pushIn','tiltRight'], 'Reflections, mirrored frames & kinetic geometry.'),
+  'Kaleidoscope': style('Experimental', 3, ['kaleido','mirror','solarize','neon'], ['spin','glitch','zoom','wipe'], ['spin','drift','pullOut','bounce'], 'Prismatic repetitions and rotating panels.'),
+  'Comic Pop': style('Experimental', 2, ['halftone','duotone','punch','pixel'], ['snap','wipe','flash','zoom'], ['pushIn','bounce','panLeft','tiltRight'], 'Pop-art contrasts, halftone textures & panels.'),
+  'Liquid Motion': style('Experimental', 4, ['dream','blur','ghost','solarize'], ['dissolve','wipe','spin'], ['drift','panRight','tiltLeft','pullOut'], 'Fluid transitions, color shifts & smooth movement.'),
+  'Industrial Grit': style('Experimental', 2, ['noir','glitch','grain','scanline','chrome'], ['glitch','dip','whipLeft','cut'], ['shake','tiltLeft','pushIn','panRight'], 'Noisy industrial edits with harsh contrast.')
 };
-export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const fmt=s=>{if(!Number.isFinite(s))return '0:00';let t=Math.max(0,Math.floor(s));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
+export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const fmt = s => {
+  if (!Number.isFinite(s)) return '0:00';
+  const t = Math.max(0, Math.floor(s));
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+};
 export function summarizeAudio(channels,sampleRate,limitSeconds=240){
   if(!channels?.length||!Number.isFinite(sampleRate)||sampleRate<=0)throw Error('Invalid decoded audio');
   const maxSamples=Math.min(channels[0].length,Math.round(sampleRate*limitSeconds));
@@ -68,48 +109,220 @@ export function summarizeAudio(channels,sampleRate,limitSeconds=240){
   for(let t=phase;t<duration-.015;t+=spacing)beats.push(Number(t.toFixed(4)));
   return {bpm,confidence,rms,duration,amplitude:amp,fps,transients,beats,phase};
 }
-export function parseDirection(prompt,initial='Bass Impact'){
-  const p=String(prompt||'').toLowerCase();let style=initial;
-  if(/glitch|digital|pixel|stutter|robot|industrial/.test(p))style='Glitchcore';
-  else if(/dream|ethereal|slow motion|soft|float|romantic/.test(p))style='Dreamwave';
-  else if(/90s|nostalg|vhs|grunge|alt.rock|tape/.test(p))style='90s Alt';
-  else if(/cinemat|noir|goth|dark|horror|film|moody/.test(p))style='Dark Cinema';
-  else if(/clean|minimal|simple|tiktok|capcut|social/.test(p))style='Clean Social';
-  else if(/bass|drop|hard|explos|rapid|fast|punch/.test(p))style='Bass Impact';
-  const aggressive=/rapid|quick|fast|double.time|every beat|aggress|chaotic/.test(p);
-  const restrained=/slow|linger|hold|long shot|gentle/.test(p);
-  const beats=clamp(PRESETS[style].beats*(aggressive?.5:restrained?1.8:1),1,12);
-  const message='Suggested '+style+' treatment: '+(aggressive?'faster cuts':restrained?'longer shots':'beat-led pacing')+', '+PRESETS[style].description.toLowerCase();
-  return {style,beats,message};
+function hash(value) {
+  let x = 2166136261;
+  for (let i = 0; i < value.length; i++) x = Math.imul(x ^ value.charCodeAt(i), 16777619);
+  return x >>> 0;
 }
-function hash(s){let x=2166136261;for(let i=0;i<s.length;i++){x=Math.imul(x^s.charCodeAt(i),16777619)}return x>>>0}
-export function makePlan({duration,media,analysis,style='Bass Impact',direction='',seed=0,beatsPerCut=null}){
-  if(!Number.isFinite(duration)||duration<=0)throw Error('Load a soundtrack or choose a valid timeline length');
-  if(!media||!media.length)throw Error('Add at least one video or image');
-  const chosen=parseDirection(direction,style);
-  const preset=PRESETS[chosen.style],beatStep=60/Math.max(62,analysis?.bpm||120);
-  const bpc=clamp(beatsPerCut??chosen.beats,1,12);
-  const preferred=clamp(beatStep*bpc,.36,9);
-  const grid=(analysis?.beats||[]).filter(t=>t>0&&t<duration);
-  const segments=[],len=media.length;
-  let start=0,i=0;
-  while(start<duration-.0005&&i<2400){
-    const nextIdeal=Math.min(duration,start+preferred);
-    const nearest=grid.reduce((prev,t)=>Math.abs(t-nextIdeal)<Math.abs(prev-nextIdeal)?t:prev,nextIdeal);
-    let end=nextIdeal;
-    if(nearest>start+.25&&Math.abs(nearest-nextIdeal)<Math.min(beatStep*.42,.24))end=nearest;
-    end=Math.min(duration,Math.max(start+.25,end));
-    if(end>duration-.24)end=duration;
-    const pick=(i+seed)%len;
-    const clip=media[pick];
-    const sourceDuration=Math.max(.001,clip.duration||end-start);
-    const span=end-start;
-    const jitter=((hash(String(clip.id)+':'+i+':'+seed)%100)/100)*Math.max(0,sourceDuration-span);
-    segments.push({id:'s'+i,start:Number(start.toFixed(5)),end:Number(end.toFixed(5)),mediaId:clip.id,sourceOffset:Number(jitter.toFixed(3)),transition:i===0?'cut':preset.transition,effect:preset.effect});
-    start=end;i++;
+function rngFor(seed, styleName, media) {
+  let state = hash(String(seed) + '|' + styleName + '|' + media.map(m => m.id).join('|')) || 1;
+  return () => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return ((state >>> 0) / 4294967296);
+  };
+}
+function pickDifferent(items, previous, random, enabled = true) {
+  const options = enabled && items.length > 1 ? items.filter(x => x !== previous) : items;
+  return options[Math.floor(random() * options.length)] ?? items[0];
+}
+function nearestBeat(grid, target) {
+  if (!grid?.length) return target;
+  let low = 0, high = grid.length - 1;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (grid[mid] < target) low = mid + 1;
+    else high = mid;
   }
-  if(segments.length)segments[segments.length-1].end=duration;
-  return {segments,duration,style:chosen.style,director:chosen.message};
+  const before = grid[Math.max(0, low - 1)] ?? target;
+  const after = grid[low] ?? target;
+  return Math.abs(before - target) < Math.abs(after - target) ? before : after;
 }
-export function findSegment(segments,t){let lo=0,hi=segments.length-1;while(lo<=hi){let m=(lo+hi)>>1,s=segments[m];if(t<s.start)hi=m-1;else if(t>=s.end)lo=m+1;else return s}return segments[segments.length-1]||null}
-export function assertContinuous(plan){if(!plan?.segments?.length)return false;let prev=0;for(const s of plan.segments){if(Math.abs(s.start-prev)>1e-4||s.end<=s.start)return false;prev=s.end}return Math.abs(prev-plan.duration)<1e-4}
+function energyAt(analysis, t, seconds = .3) {
+  if (!analysis?.amplitude?.length || !analysis?.fps) return 1;
+  const values = analysis.amplitude;
+  const start = clamp(Math.round((t - seconds / 2) * analysis.fps), 0, values.length - 1);
+  const end = clamp(Math.round((t + seconds / 2) * analysis.fps), start + 1, values.length);
+  let local = 0;
+  for (let i = start; i < end; i++) local += values[i];
+  let global = 0;
+  const step = Math.max(1, Math.floor(values.length / 800));
+  for (let i = 0; i < values.length; i += step) global += values[i];
+  return (local / Math.max(1, end - start)) / Math.max(.00001, global / Math.ceil(values.length / step));
+}
+function makeClipChooser(media, random, avoidRepeats = true) {
+  let bag = [];
+  let last = null;
+  return () => {
+    if (!avoidRepeats) return media[Math.floor(random() * media.length)];
+    if (!bag.length) {
+      bag = media.map(m => m.id);
+      for (let i = bag.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [bag[i], bag[j]] = [bag[j], bag[i]];
+      }
+    }
+    if (media.length > 1 && bag[0] === last) {
+      const swap = 1 + Math.floor(random() * (bag.length - 1));
+      if (bag.length > 1) [bag[0], bag[swap]] = [bag[swap], bag[0]];
+      else {
+        const choices = media.filter(m => m.id !== last);
+        bag[0] = choices[Math.floor(random() * choices.length)].id;
+      }
+    }
+    const id = bag.shift();
+    last = id;
+    return media.find(m => m.id === id) || media[0];
+  };
+}
+export function parseDirection(prompt, initial = 'Bass Impact') {
+  const p = String(prompt || '').toLowerCase();
+  let chosen = PRESETS[initial] ? initial : 'Bass Impact';
+  const rules = [
+    [/hyperpop|candy|chaotic|frenzy/, 'Hyperpop Frenzy'],
+    [/glitch|digital|pixel|stutter|cyber|signal/, 'Glitchcore'],
+    [/kaleid|prism/, 'Kaleidoscope'],
+    [/mirror|reflection/, 'Mirrorverse'],
+    [/ghost|double exposure|afterimage/, 'Ghost Trail'],
+    [/velocity|speed ramp|speed.ramp|whip pan/, 'Velocity Cuts'],
+    [/trailer|epic|orchestral/, 'Epic Trailer'],
+    [/romantic|love song|tender/, 'Romantic Slowburn'],
+    [/melanchol|heartbreak|sad|heart broken/, 'Heartbreak Film'],
+    [/dream|ethereal|soft|float/, 'Dreamwave'],
+    [/y2k|camcorder/, 'Y2K Camcorder'],
+    [/vhs|tape|nostalgic/, 'VHS Tape'],
+    [/90s|grunge|post.punk|alt.rock/, '90s Alt'],
+    [/rave|techno|dance club/, 'Retro Rave'],
+    [/industrial|metal|grit/, 'Industrial Grit'],
+    [/comic|manga|pop.art/, 'Comic Pop'],
+    [/noir|thriller|horror/, 'Noir Thriller'],
+    [/cinemat|goth|dark|film|moody/, 'Dark Cinema'],
+    [/neon|laser|glow/, 'Neon Pulse'],
+    [/liquid|water|flowing/, 'Liquid Motion'],
+    [/clean|minimal|tiktok|capcut|social/, 'Trend Sync'],
+    [/fast zoom|zoom punch/, 'Flash Zoom'],
+    [/beat rush|every beat|quick cut/, 'Beat Rush'],
+    [/bass|drop|hard|explos|punch/, 'Bass Impact']
+  ];
+  for (const [pattern, styleName] of rules) {
+    if (pattern.test(p)) { chosen = styleName; break; }
+  }
+  const aggressive = /rapid|quick|fast|double.time|every beat|aggress|chaotic|hyper|hard cuts/.test(p);
+  const restrained = /slow|linger|hold|long shot|gentle|soft|calm/.test(p);
+  const beats = clamp(PRESETS[chosen].beats * (aggressive ? .65 : restrained ? 1.6 : 1), .5, 12);
+  return {
+    style: chosen,
+    beats,
+    message: PRESETS[chosen].description + ' ' +
+      (aggressive ? 'Quick-paced cuts.' : restrained ? 'Longer, flowing shots.' : 'Varied beat-led pacing.')
+  };
+}
+
+/**
+ * A musical edit decision list. A seed changes the choreography without
+ * changing the soundtrack duration. When footage runs out, source frames
+ * loop and are reframed; the original audio is never speed-adjusted.
+ */
+export function makePlan({
+  duration, media, analysis, style: requestedStyle = 'Bass Impact',
+  direction = '', seed = 0, beatsPerCut = null, variation = .85,
+  avoidRepeats = true, dynamics = true
+}) {
+  if (!Number.isFinite(duration) || duration <= 0) throw Error('Load a soundtrack or choose a valid timeline length');
+  if (!Array.isArray(media) || !media.length) throw Error('Add at least one video or image');
+  const creative = parseDirection(direction, requestedStyle);
+  const preset = PRESETS[creative.style];
+  const random = rngFor(seed, creative.style, media);
+  const beat = 60 / clamp(Number(analysis?.bpm) || 120, 62, 190);
+  const baseBeats = clamp(Number(beatsPerCut) || creative.beats, .5, 12);
+  const diversity = clamp(Number(variation) || 0, 0, 1);
+  const grid = (analysis?.beats || []).filter(t => t > 0 && t < duration);
+  const segments = [];
+  const nextMedia = makeClipChooser(media, random, avoidRepeats);
+  let start = 0;
+  let prevEffect = null, prevMotion = null, prevTransition = null, prevMediaId = null, prevOffset = null;
+  let lastAccent = null;
+  const accentColors = ['#eb7df4','#70d7fc','#ff8b8b','#fcb864','#a9f59a','#c49aff'];
+  for (let i = 0; start < duration - .00001 && i < 2400; i++) {
+    // Every scene gets a distinct rhythmic phrase, while beats remain quantized.
+    const rhythmicPatterns = [.5, .75, 1, 1, 1.25, 1.5, 2, .625, 1.75];
+    const rhythmicScale = diversity >= .2
+      ? rhythmicPatterns[Math.floor(random() * rhythmicPatterns.length)]
+      : 1;
+    let beats = clamp(baseBeats * (1 + (rhythmicScale - 1) * diversity), .5, 16);
+    const energy = dynamics ? energyAt(analysis, start) : 1;
+    if (dynamics && diversity > .05) {
+      beats *= energy > 1.65 ? .66 : energy < .65 ? 1.24 : 1;
+    }
+    beats = Math.max(.5, Math.round(beats * 2) / 2);
+    const ideal = Math.min(duration, start + Math.max(.26, duration / 1800, beats * beat));
+    let end = ideal;
+    if (grid.length && ideal < duration - .01) {
+      const snapped = nearestBeat(grid, ideal);
+      if (snapped > start + .22 && Math.abs(snapped - ideal) < Math.min(beat * .38, .26)) end = snapped;
+    }
+    end = Math.min(duration, Math.max(start + .23, end));
+    if (duration - end < .22) end = duration;
+    end = Math.min(end, duration);
+    const mediaClip = nextMedia();
+    let effect = pickDifferent(preset.effects, prevEffect, random, avoidRepeats);
+    let motion = pickDifferent(preset.motions, prevMotion, random, avoidRepeats);
+    let transition = i === 0 ? 'cut' : pickDifferent(preset.transitions, prevTransition, random, avoidRepeats);
+    // The exact same shot presentation must never be repeated consecutively.
+    if (avoidRepeats && i > 0 && mediaClip.id === prevMediaId && effect === prevEffect) {
+      effect = pickDifferent(EFFECTS, prevEffect, random, true);
+    }
+    if (avoidRepeats && i > 0 && motion === prevMotion) {
+      motion = pickDifferent(MOTIONS, prevMotion, random, true);
+    }
+    const crop = diversity < .1 ? 1.02 : 1.05 + random() * (.31 * diversity);
+    const flip = diversity >= .5 && random() > .82;
+    const speeds = diversity >= .45 ? [.75, .85, 1, 1, 1.2, 1.35] : [1];
+    const speed = mediaClip.kind === 'image' ? 1 : speeds[Math.floor(random() * speeds.length)];
+    const span = end - start;
+    const sourceDuration = Math.max(.001, Number(mediaClip.duration) || span);
+    const usableSource = Math.max(0, sourceDuration - span * speed);
+    let offset = Number((random() * usableSource).toFixed(3));
+    if (mediaClip.id === prevMediaId && usableSource > .5 && Math.abs(offset - prevOffset) < .2) {
+      offset = Number(((offset + .41) % usableSource).toFixed(3));
+    }
+    const color = pickDifferent(accentColors, lastAccent, random, true);
+    const segment = {
+      id: 's' + i, start: Number(start.toFixed(5)), end: Number(end.toFixed(5)),
+      mediaId: mediaClip.id, sourceOffset: offset, transition, effect, motion,
+      crop: Number(crop.toFixed(3)), flip, speed, accent: color,
+      intensity: Number((.25 + diversity * .7).toFixed(2)),
+      variant: Math.floor(random() * 10000), energy: Number(energy.toFixed(2))
+    };
+    segments.push(segment);
+    prevEffect = effect; prevMotion = motion; prevTransition = transition;
+    prevMediaId = mediaClip.id; prevOffset = offset; lastAccent = color;
+    start = end;
+  }
+  if (segments.length) segments[segments.length - 1].end = duration;
+  return {
+    segments, duration, style: creative.style,
+    variation: diversity, avoidRepeats: Boolean(avoidRepeats), dynamics: Boolean(dynamics),
+    director: creative.message
+  };
+}
+export function findSegment(segments, t) {
+  let low = 0, high = segments.length - 1;
+  while (low <= high) {
+    const i = (low + high) >> 1;
+    if (t < segments[i].start) high = i - 1;
+    else if (t >= segments[i].end) low = i + 1;
+    else return segments[i];
+  }
+  return segments[segments.length - 1] || null;
+}
+export function assertContinuous(plan) {
+  if (!plan?.segments?.length) return false;
+  let previous = 0;
+  for (const shot of plan.segments) {
+    if (Math.abs(shot.start - previous) > .0001 || shot.end <= shot.start) return false;
+    previous = shot.end;
+  }
+  return Math.abs(previous - plan.duration) < .0001;
+}
