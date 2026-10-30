@@ -151,10 +151,11 @@ function energyAt(analysis, t, seconds = .3) {
   for (let i = 0; i < values.length; i += step) global += values[i];
   return (local / Math.max(1, end - start)) / Math.max(.00001, global / Math.ceil(values.length / step));
 }
-function makeClipChooser(media, random) {
+function makeClipChooser(media, random, avoidRepeats = true) {
   let bag = [];
   let last = null;
   return () => {
+    if (!avoidRepeats) return media[Math.floor(random() * media.length)];
     if (!bag.length) {
       bag = media.map(m => m.id);
       for (let i = bag.length - 1; i > 0; i--) {
@@ -238,7 +239,7 @@ export function makePlan({
   const diversity = clamp(Number(variation) || 0, 0, 1);
   const grid = (analysis?.beats || []).filter(t => t > 0 && t < duration);
   const segments = [];
-  const nextMedia = makeClipChooser(media, random);
+  const nextMedia = makeClipChooser(media, random, avoidRepeats);
   let start = 0;
   let prevEffect = null, prevMotion = null, prevTransition = null, prevMediaId = null, prevOffset = null;
   let lastAccent = null;
@@ -255,7 +256,7 @@ export function makePlan({
       beats *= energy > 1.65 ? .66 : energy < .65 ? 1.24 : 1;
     }
     beats = Math.max(.5, Math.round(beats * 2) / 2);
-    const ideal = Math.min(duration, start + Math.max(.26, beats * beat));
+    const ideal = Math.min(duration, start + Math.max(.26, duration / 1800, beats * beat));
     let end = ideal;
     if (grid.length && ideal < duration - .01) {
       const snapped = nearestBeat(grid, ideal);
