@@ -1,4 +1,5 @@
-import {PRESETS,clamp,fmt,summarizeAudio,parseDirection,makePlan,findSegment,assertContinuous} from './engine.mjs';
+import {PRESETS,EFFECTS,TRANSITIONS,MOTIONS,clamp,fmt,summarizeAudio,parseDirection,makePlan,findSegment,assertContinuous} from './engine.mjs';
+import {drawShot,drawTreatment,drawCutOverlay,transitionMix} from './effects.mjs';
 const $=(id)=>document.getElementById(id);
 const q=(selector)=>document.querySelector(selector);
 const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[],style:'Bass Impact',seed:0,plan:null,selectedId:null,playing:false,position:0,playStart:0,rendering:false,raf:0,lastMediaId:null,previewLooped:false};
@@ -7,7 +8,7 @@ audio.preload='auto';
 audio.volume=1;
 const canvas=$('previewCanvas'),ctx=canvas.getContext('2d',{alpha:false});
 const wave=$('waveform'),waveCtx=wave.getContext('2d');
-const styleButtons=[...document.querySelectorAll('[data-style]')];
+const styleButtons=()=>[...document.querySelectorAll('[data-style]')];
 const defaultCanvas=()=>{const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);g.addColorStop(0,'#3b224b');g.addColorStop(.6,'#1c152d');g.addColorStop(1,'#0c0a16');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#ead4f7';ctx.textAlign='center';ctx.font='700 '+Math.round(canvas.width*.08)+'px sans-serif';ctx.fillText('✦',canvas.width/2,canvas.height/2);};
 function status(message,kind=''){const el=$('status');el.textContent=message;el.className='status '+kind}
 function duration(){const master=state.analysis?.duration||0;if(!master)return 0;return $('durationLock').checked?master:clamp(Number($('customDuration').value)||master,.5,Math.max(3600,master*2))}
@@ -53,7 +54,44 @@ async function addMedia(files){if(!files?.length)return;status('Loading '+files.
 function updateMediaList(){const el=$('mediaList');el.replaceChildren();if(!state.media.length){el.textContent='Your footage collection will appear here.';return}
  for(const m of state.media){const chip=document.createElement('div');chip.className='media-chip';const ico=document.createElement('b');ico.textContent=m.kind==='video'?'▣':'▤';const name=document.createElement('span');name.textContent=m.name;name.title=m.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove '+m.name;remove.setAttribute('aria-label','Remove '+m.name);remove.addEventListener('click',()=>{stopPreview();if(m.kind==='video')m.el.pause();URL.revokeObjectURL(m.url);state.media=state.media.filter(x=>x.id!==m.id);updateMediaList();if(state.media.length&&state.audioBuffer)createPlan(false);else{state.plan=null;clearEdit();} });chip.append(ico,name,remove);el.append(chip);}
 }
-function chooseStyle(name){state.style=name;styleButtons.forEach(b=>b.classList.toggle('selected',b.dataset.style===name));}
+function chooseStyle(name) {
+  if (!PRESETS[name]) return;
+  state.style = name;
+  styleButtons().forEach(button=>button.classList.toggle('selected',button.dataset.style===name));
+}
+function templateLibrary() {
+  const grid=$('styleGrid'), query=$('templateSearch').value.toLowerCase().trim(), category=$('templateFilter').value;
+  const matches=Object.entries(PRESETS).filter(([name, p])=>(category==='All'||p.category===category)
+    &&(!query||[name,p.description,p.category,...p.effects].join(' ').toLowerCase().includes(query)));
+  grid.replaceChildren();
+  const icons={Viral:'⚡',Cinematic:'◈',Retro:'▤',Experimental:'✳'};
+  for(const [name,p] of matches){
+    const button=document.createElement('button');
+    button.type='button';button.className='style-tile'+(state.style===name?' selected':'');
+    button.dataset.style=name;button.title=p.description;
+    const ico=document.createElement('span');ico.className='style-icon';ico.textContent=icons[p.category]||'✦';
+    const label=document.createElement('b');label.textContent=name;
+    const caption=document.createElement('small');caption.textContent=p.description;
+    const categoryTag=document.createElement('span');categoryTag.className='style-category';categoryTag.textContent=p.category;
+    button.append(ico,label,caption,categoryTag);
+    button.addEventListener('click',()=>{
+      chooseStyle(name);$('directorPrompt').value='';if(state.audioBuffer&&state.media.length)createPlan(true);
+    });
+    grid.append(button);
+  }
+  $('templateCount').textContent=matches.length+' / '+Object.keys(PRESETS).length+' STYLES';
+  if(!matches.length)grid.textContent='No templates match. Try a different word.';
+}
+function variationOptions(){
+  return {
+    variation:Number($('variation').value)/100,
+    avoidRepeats:$('avoidRepeats').checked,
+    dynamics:$('dynamics').checked
+  };
+}
+function updateVariation(){
+  $('variationValue').textContent=$('variation').value+'%';
+}
 function drawWave(){const w=wave.width,h=wave.height;waveCtx.clearRect(0,0,w,h);waveCtx.fillStyle='#151020';waveCtx.fillRect(0,0,w,h);
  const a=state.analysis;if(!a){waveCtx.fillStyle='#6f587e';waveCtx.font='12px sans-serif';waveCtx.fillText('Load a song to see its waveform',18,48);return}
  const envelope=a.amplitude,step=envelope.length/w;
@@ -68,82 +106,162 @@ function seek(t){const d=duration();state.position=clamp(t,0,d);if(state.analysi
 function updateTransport(){const d=duration();$('previewSeek').value=d?String(Math.round(1000*state.position/d)):'0';$('currentTime').textContent=fmt(state.position)}
 function sceneMedia(id){return state.media.find(x=>x.id===id)}
 function chooseScene(id){state.selectedId=id;document.querySelectorAll('.shot').forEach(x=>x.classList.toggle('active',x.dataset.id===id));document.querySelectorAll('.scene-row').forEach(x=>x.style.borderColor=x.dataset.id===id?'#b986db':'#32273e')}
-function updateTimeline(){const plan=state.plan;$('timelineBar').replaceChildren();$('sceneInspector').replaceChildren();
- if(!plan){clearEdit();return}
- $('sceneCount').textContent=plan.segments.length+' CUTS';$('exportScenes').textContent=String(plan.segments.length);
- const maxRows=150;
- const frag=document.createDocumentFragment();
- for(let i=0;i<plan.segments.length;i++){
-  const seg=plan.segments[i],m=sceneMedia(seg.mediaId);
-  const bar=document.createElement('button');bar.type='button';bar.className='shot';bar.style.width=(seg.end-seg.start)/plan.duration*100+'%';bar.dataset.id=seg.id;bar.title=(m?.name||'Clip')+' · '+fmt(seg.start)+'–'+fmt(seg.end);const label=document.createElement('span');label.textContent=(i+1).toString().padStart(2,'0');const sub=document.createElement('small');sub.textContent=m?.kind==='video'?'▣':'▤';bar.append(label,sub);bar.addEventListener('click',()=>{chooseScene(seg.id);seek(seg.start)});frag.append(bar);
- }
- $('timelineBar').append(frag);
- const list=document.createDocumentFragment();
- for(const seg of plan.segments.slice(0,maxRows)){
-  const row=document.createElement('div');row.className='scene-row';row.dataset.id=seg.id;
-  const index=document.createElement('span');index.className='scene-num';index.textContent='#'+String(Number(seg.id.slice(1))+1).padStart(2,'0');
-  const label=document.createElement('div');label.className='scene-label';label.textContent=fmt(seg.start)+' → '+fmt(seg.end);const small=document.createElement('span');small.className='scene-time';small.textContent=(seg.end-seg.start).toFixed(2)+'s';label.append(small);
-  const mediaSelect=document.createElement('select');mediaSelect.setAttribute('aria-label','Footage for scene '+seg.id);
-  for(const m of state.media){const option=document.createElement('option');option.value=m.id;option.textContent=m.name;mediaSelect.append(option)}
-  mediaSelect.value=seg.mediaId;mediaSelect.addEventListener('change',()=>{seg.mediaId=mediaSelect.value;seg.sourceOffset=0;seek(seg.start)});
-  const effectSelect=document.createElement('select');effectSelect.setAttribute('aria-label','Visual effect for scene '+seg.id);
-  for(const name of ['natural','punch','noir','glitch','dream','vhs']){const option=document.createElement('option');option.value=name;option.textContent=name;effectSelect.append(option)}
-  effectSelect.value=seg.effect;effectSelect.addEventListener('change',()=>{seg.effect=effectSelect.value;renderFrame(state.position)});
-  row.append(index,label,mediaSelect,effectSelect);row.addEventListener('click',e=>{if(e.target.tagName==='SELECT')return;chooseScene(seg.id);seek(seg.start)});list.append(row);
- }
- $('sceneInspector').append(list);
- if(plan.segments.length>maxRows){const note=document.createElement('p');note.style.color='#af9abb';note.style.fontSize='10px';note.textContent='Showing first '+maxRows+' scenes. Click any segment in the video track to preview it.';$('sceneInspector').append(note)}
- chooseScene(plan.segments[0]?.id);
+function updateTimeline() {
+  const plan=state.plan;
+  $('timelineBar').replaceChildren();$('sceneInspector').replaceChildren();
+  if(!plan){clearEdit();return}
+  $('sceneCount').textContent=plan.segments.length+' CUTS';
+  $('exportScenes').textContent=String(plan.segments.length);
+  const barFragment=document.createDocumentFragment();
+  for(let i=0;i<plan.segments.length;i++){
+    const seg=plan.segments[i],media=sceneMedia(seg.mediaId);
+    const bar=document.createElement('button');
+    bar.type='button';bar.className='shot';bar.dataset.id=seg.id;
+    bar.style.width=(seg.end-seg.start)/plan.duration*100+'%';
+    bar.title=(media?.name||'Clip')+' · '+fmt(seg.start)+' – '+fmt(seg.end)+' · '+seg.effect+' / '+seg.motion;
+    const n=document.createElement('span');n.textContent=String(i+1).padStart(2,'0');
+    const e=document.createElement('small');e.textContent=seg.effect;
+    bar.append(n,e);bar.addEventListener('click',()=>{chooseScene(seg.id);seek(seg.start)});
+    barFragment.append(bar);
+  }
+  $('timelineBar').append(barFragment);
+  const rows=document.createDocumentFragment(), maxRows=150;
+  for(const seg of plan.segments.slice(0,maxRows)){
+    const row=document.createElement('div');row.className='scene-row';row.dataset.id=seg.id;
+    const top=document.createElement('div');top.className='scene-top';
+    const num=document.createElement('span');num.className='scene-num';num.textContent='#'+String(Number(seg.id.slice(1))+1).padStart(2,'0');
+    const title=document.createElement('span');title.className='scene-title';title.textContent=fmt(seg.start)+' → '+fmt(seg.end)+' · '+(seg.end-seg.start).toFixed(2)+'s';
+    const mediaSelect=makeChoice('Footage',state.media.map(m=>({value:m.id,label:m.name})),seg.mediaId,value=>{seg.mediaId=value;seg.sourceOffset=0;seek(seg.start)});
+    mediaSelect.className+=' clip-choice';
+    top.append(num,title,mediaSelect);
+    const options=document.createElement('div');options.className='scene-controls';
+    options.append(
+      makeChoice('FX',EFFECTS.map(v=>({value:v,label:v})),seg.effect,value=>{seg.effect=value;renderFrame(state.position)}),
+      makeChoice('Motion',MOTIONS.map(v=>({value:v,label:v})),seg.motion||'static',value=>{seg.motion=value;renderFrame(state.position)}),
+      makeChoice('Cut',TRANSITIONS.map(v=>({value:v,label:v})),seg.transition||'cut',value=>{seg.transition=value;renderFrame(state.position)}),
+      makeChoice('Speed',[.5,.75,.85,1,1.2,1.35,1.6,2].map(v=>({value:String(v),label:v+'×'})),String(seg.speed||1),value=>{seg.speed=Number(value);renderFrame(state.position)})
+    );
+    row.append(top,options);
+    row.addEventListener('click',event=>{if(['SELECT','OPTION','INPUT'].includes(event.target.tagName))return;chooseScene(seg.id);seek(seg.start)});
+    rows.append(row);
+  }
+  $('sceneInspector').append(rows);
+  if(plan.segments.length>maxRows){
+    const n=document.createElement('p');n.className='scene-note';
+    n.textContent='Showing first '+maxRows+' scene controls. Use the timeline above to preview every cut.';
+    $('sceneInspector').append(n);
+  }
+  chooseScene(plan.segments[0]?.id);
+}
+function makeChoice(name, items, active, change) {
+  const outer=document.createElement('label');outer.className='scene-option';
+  const caption=document.createElement('span');caption.textContent=name;
+  const select=document.createElement('select');select.setAttribute('aria-label',name+' for shot');
+  for(const item of items) {
+    const option=document.createElement('option');option.value=item.value;option.textContent=item.label;
+    select.append(option);
+  }
+  select.value=String(active);
+  select.addEventListener('change',()=>change(select.value));
+  outer.append(caption,select);return outer;
 }
 function clearEdit(){$('timelineBar').textContent='Your edited shots will appear on this timeline.';$('sceneInspector').textContent='Generate an edit to inspect & customize individual scenes.';$('sceneCount').textContent='0 CUTS';$('exportScenes').textContent='0';renderFrame(0);}
-function createPlan(randomize=true){if(!state.audioBuffer){status('Load a soundtrack first.','error');return}if(!state.media.length){status('Add at least one video or image first.','error');return}
- if(randomize)state.seed++;const instructions=$('directorPrompt').value.trim();const director=parseDirection(instructions,state.style);
- if(instructions)chooseStyle(director.style);
- try{state.plan=makePlan({duration:duration(),media:state.media,analysis:state.analysis,style:state.style,direction:instructions,seed:state.seed});
- if(!assertContinuous(state.plan))throw Error('Timeline has a gap');
- $('directorOutput').textContent=state.plan.director+' '+state.plan.segments.length+' shots choreographed to '+state.analysis.bpm.toFixed(1)+' BPM'+($('durationLock').checked?'. Song length is locked.':'. Custom length enabled.');
- syncSummary();updateTimeline();seek(0);$('emptyPreview').hidden=true;status('Beat-synced video edit ready. Preview, customize & export.','ok');
- }catch(err){status('Could not make edit: '+err.message,'error')}
+function createPlan(randomize=true) {
+  if(!state.audioBuffer){status('Load a soundtrack first.','error');return}
+  if(!state.media.length){status('Add at least one video or image first.','error');return}
+  stopPreview();
+  if(randomize)state.seed++;
+  const instructions=$('directorPrompt').value.trim();
+  const director=parseDirection(instructions,state.style);
+  if(instructions)chooseStyle(director.style);
+  try {
+    const options=variationOptions();
+    state.plan=makePlan({
+      duration:duration(),media:state.media,analysis:state.analysis,
+      style:state.style,direction:instructions,seed:state.seed,...options
+    });
+    if(!assertContinuous(state.plan))throw Error('Timeline has a gap');
+    const effectCount=new Set(state.plan.segments.map(seg=>seg.effect)).size;
+    const motionCount=new Set(state.plan.segments.map(seg=>seg.motion)).size;
+    $('directorOutput').textContent=state.plan.director+' '+state.plan.segments.length
+      +' beat-led scenes · '+effectCount+' FX · '+motionCount+' camera moves · '
+      +state.analysis.bpm.toFixed(1)+' BPM'+(options.avoidRepeats?' · anti-repeat ON':'')
+      +($('durationLock').checked?' · full song locked':'');
+    syncSummary();updateTimeline();seek(0);$('emptyPreview').hidden=true;
+    status('New automatic edit ready: '+effectCount+' looks and '+motionCount+' camera moves. Remix again for new variations.','ok');
+  }catch(error){status('Could not make edit: '+error.message,'error')}
 }
 function syncSummary(){syncLengthsSafe();drawWave();updateTransport()}
 function syncLengthsSafe(){const d=duration();$('songDuration').textContent=fmt(state.analysis?.duration||0);$('videoDuration').textContent=fmt(d);$('exportLength').textContent=fmt(d);$('totalTime').textContent=fmt(d);$('timelineDuration').textContent=fmt(d);}
-function setVideoMedia(m,target){if(m.kind!=='video'||!Number.isFinite(m.duration)||m.duration<=0)return;
- const desired=clamp(target%m.duration,0,Math.max(.01,m.duration-.06));
- if(Math.abs(m.el.currentTime-desired)>.19){try{m.el.currentTime=desired}catch{}}
- if(state.playing||state.rendering){if(m.el.paused)m.el.play().catch(()=>{});}else if(!m.el.paused){m.el.pause();}
+function setVideoMedia(media,target,shot,isForeground=true) {
+  if(media.kind!=='video'||!Number.isFinite(media.duration)||media.duration<=0)return;
+  const element=media.el, speed=clamp(Number(shot.speed)||1,.5,2);
+  element.loop=true;element.muted=true;
+  if(Math.abs(element.playbackRate-speed)>.001)element.playbackRate=speed;
+  const desired=clamp((target%media.duration+media.duration)%media.duration,0,Math.max(.01,media.duration-.055));
+  if(Math.abs(element.currentTime-desired)>.16) {
+    try {element.currentTime=desired;} catch {}
+  }
+  if((state.playing||state.rendering)&&isForeground) {
+    if(element.paused)element.play().catch(()=>{});
+  }else if(!element.paused && !isForeground) {
+    element.pause();
+  }else if(!state.playing&&!state.rendering&&!element.paused){
+    element.pause();
+  }
 }
-function drawSource(m,seg,t,alpha=1){if(!m)return;
- const elapsed=Math.max(0,t-seg.start),target=seg.sourceOffset+elapsed;
- let el=m.el,iw=el.videoWidth||el.naturalWidth||1,ih=el.videoHeight||el.naturalHeight||1;
- if(m.kind==='video'){setVideoMedia(m,target);if(el.readyState<2)return}
- if(!iw||!ih)return;
- const w=canvas.width,h=canvas.height,zoom=1+.018*Math.sin(t*.55),scale=Math.max(w/iw,h/ih)*zoom;
- const dw=iw*scale,dh=ih*scale,dx=(w-dw)/2,dy=(h-dh)/2;
- ctx.save();ctx.globalAlpha=alpha;
- switch(seg.effect){case 'noir':ctx.filter='contrast(1.19) saturate(.55) brightness(.83)';break;case 'dream':ctx.filter='saturate(1.45) brightness(1.07) blur(1.2px)';break;case 'vhs':ctx.filter='contrast(1.13) saturate(.85)';break;case 'punch':ctx.filter='contrast(1.17) saturate(1.25)';break;case 'glitch':ctx.filter='contrast(1.28) saturate(1.5)';break;default:ctx.filter='none'}
- try{ctx.drawImage(el,dx,dy,dw,dh)}catch{}
- ctx.restore();
+function drawSource(media,segment,time,alpha=1,foreground=true){
+  if(!media)return;
+  const elapsed=Math.max(0,time-segment.start);
+  const speed=clamp(Number(segment.speed)||1,.5,2);
+  if(media.kind==='video') {
+    setVideoMedia(media,segment.sourceOffset+elapsed*speed,segment,foreground);
+    if(media.el.readyState<2)return;
+  }
+  drawShot(ctx,canvas,media,segment,time,alpha);
 }
-function drawFx(seg,t){
- const w=canvas.width,h=canvas.height,local=t-seg.start;
- ctx.save();
- const v=ctx.createRadialGradient(w/2,h/2,w*.15,w/2,h/2,w*.75);v.addColorStop(0,'#00000000');v.addColorStop(1,'#00000077');ctx.fillStyle=v;ctx.fillRect(0,0,w,h);
- if(seg.effect==='vhs'){ctx.fillStyle='#ffffff0f';for(let y=0;y<h;y+=5){ctx.fillRect(0,y,w,1)}ctx.fillStyle='#db75e422';ctx.fillRect(0,0,w,Math.max(2,h*.015))}
- if(seg.effect==='glitch'&&Math.floor(t*20)%9<2){const y=(Math.sin(t*8)*.5+.5)*h;ctx.fillStyle='#f46af829';ctx.fillRect(0,y,w,h*.05);ctx.fillStyle='#4dfce720';ctx.fillRect(w*.05,y+h*.01,w*.9,h*.015)}
- if(seg.effect==='punch'){const beats=state.analysis?.beats||[];const b=beats.find(x=>Math.abs(x-t)<.055);if(b!==undefined){ctx.fillStyle='#f0b4fc25';ctx.fillRect(0,0,w,h)}}
- if(seg.transition==='flash'&&local<.1){ctx.fillStyle='rgba(255,235,255,'+(.48*(1-local/.1))+')';ctx.fillRect(0,0,w,h)}
- if(seg.transition==='glitch'&&local<.14){ctx.fillStyle='rgba(203,91,222,'+(.38*(1-local/.14))+')';ctx.fillRect(0,0,w,h)}
- ctx.restore();
-}
-function renderFrame(t){const w=canvas.width,h=canvas.height;ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);const seg=state.plan&&findSegment(state.plan.segments,clamp(t,0,Math.max(0,state.plan.duration-.00001)));
- if(!seg){defaultCanvas();return}
- const media=sceneMedia(seg.mediaId);if(!media){defaultCanvas();return}
- if(state.lastMediaId&&state.lastMediaId!==media.id){const old=sceneMedia(state.lastMediaId);if(old?.kind==='video')old.el.pause()}
- state.lastMediaId=media.id;
- const local=t-seg.start;
- if(seg.transition==='dissolve'&&local<.22){const index=state.plan.segments.indexOf(seg);const prev=state.plan.segments[index-1];if(prev){drawSource(sceneMedia(prev.mediaId),prev,t,.9);drawSource(media,seg,t,clamp(local/.22,0,1));}else drawSource(media,seg,t)}
- else drawSource(media,seg,t);
- drawFx(seg,t);
+function renderFrame(time) {
+  const w=canvas.width,h=canvas.height;
+  ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);
+  const segment=state.plan&&findSegment(state.plan.segments,clamp(time,0,Math.max(0,state.plan.duration-.00001)));
+  if(!segment){defaultCanvas();return}
+  const media=sceneMedia(segment.mediaId);
+  if(!media){defaultCanvas();return}
+  if(state.lastMediaId && state.lastMediaId!==media.id){
+    const old=sceneMedia(state.lastMediaId);
+    if(old?.kind==='video')old.el.pause();
+  }
+  state.lastMediaId=media.id;
+  const opacity=transitionMix(segment,time);
+  const index=Number(segment.id.slice(1));
+  const previous=index>0?state.plan.segments[index-1]:null;
+  const oldMedia=previous&&sceneMedia(previous.mediaId);
+  const cut=segment.transition;
+  const progress=1-opacity;
+  if(opacity>0&&oldMedia){
+    drawSource(oldMedia,previous,Math.max(previous.start,previous.end-.04),1,false);
+    if(cut==='wipe'){
+      ctx.save();ctx.beginPath();ctx.rect(0,0,w*progress,h);ctx.clip();
+      drawSource(media,segment,time);ctx.restore();
+    }else if(cut==='whipLeft'||cut==='whipRight'||cut==='slideUp'){
+      ctx.save();
+      const travel=(1-progress)*(cut==='slideUp'?h:w);
+      if(cut==='slideUp')ctx.translate(0,travel);
+      else ctx.translate(cut==='whipLeft'?travel:-travel,0);
+      drawSource(media,segment,time);ctx.restore();
+    }else if(cut==='spin'){
+      ctx.save();ctx.translate(w/2,h/2);
+      ctx.rotate((1-progress)*.43*Math.PI);ctx.scale(.7+.3*progress,.7+.3*progress);
+      ctx.translate(-w/2,-h/2);drawSource(media,segment,time,progress);
+      ctx.restore();
+    }else{
+      drawSource(media,segment,time,progress);
+    }
+  }else{
+    drawSource(media,segment,time);
+  }
+  drawTreatment(ctx,canvas,segment,time,$('safeFlash').checked);
+  drawCutOverlay(ctx,canvas,segment,time,$('safeFlash').checked);
 }
 function stopPreview(){if(state.raf)cancelAnimationFrame(state.raf);state.raf=0;state.playing=false;audio.pause();$('previewPlay').textContent='▶';for(const m of state.media){if(m.kind==='video')m.el.pause()}}
 function tick(){if(!state.playing)return;const d=duration();let t=$('durationLock').checked?audio.currentTime:(performance.now()-state.playStart)/1000;if(!Number.isFinite(t))t=0;
@@ -196,7 +314,22 @@ $('mediaInput').addEventListener('change',e=>{addMedia([...e.target.files]);e.ta
 function dropSupport(id,handler){const el=$(id);['dragenter','dragover'].forEach(event=>el.addEventListener(event,e=>{e.preventDefault();el.classList.add('drag-over')}));['dragleave','drop'].forEach(event=>el.addEventListener(event,e=>{e.preventDefault();el.classList.remove('drag-over')}));el.addEventListener('drop',e=>handler([...e.dataTransfer.files]))}
 dropSupport('audioDrop',files=>loadAudio(files.find(f=>f.type.startsWith('audio/'))||files[0]));
 dropSupport('mediaDrop',files=>addMedia(files));
-for(const b of styleButtons)b.addEventListener('click',()=>{chooseStyle(b.dataset.style);$('directorPrompt').value='';if(state.audioBuffer&&state.media.length)createPlan(false)});
+templateLibrary();
+$('templateSearch').addEventListener('input',templateLibrary);
+$('templateFilter').addEventListener('change',templateLibrary);
+$('variation').addEventListener('input',updateVariation);
+$('variation').addEventListener('change',()=>{if(state.audioBuffer&&state.media.length)createPlan(true)});
+$('avoidRepeats').addEventListener('change',()=>{if(state.audioBuffer&&state.media.length)createPlan(true)});
+$('dynamics').addEventListener('change',()=>{if(state.audioBuffer&&state.media.length)createPlan(true)});
+$('safeFlash').addEventListener('change',()=>renderFrame(state.position));
+$('surpriseBtn').addEventListener('click',()=>{
+  const names=Object.keys(PRESETS);
+  const other=names.filter(name=>name!==state.style);
+  chooseStyle(other[Math.floor(Math.random()*other.length)]||names[0]);
+  $('directorPrompt').value='';
+  $('variation').value='100';updateVariation();templateLibrary();createPlan(true);
+});
+
 document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{$('directorPrompt').value=b.dataset.prompt;if(state.audioBuffer&&state.media.length)createPlan(false)}));
 $('bpmInput').addEventListener('change',()=>{if(!state.analysis)return;const b=clamp(Number($('bpmInput').value)||state.analysis.bpm,62,190);state.analysis.bpm=b;const phase=state.analysis.phase||0,beat=60/b;state.analysis.beats=[];for(let t=phase;t<state.analysis.duration;t+=beat)state.analysis.beats.push(Number(t.toFixed(4)));$('bpmReadout').textContent=b.toFixed(1)+' BPM · manual';drawWave();if(state.media.length)createPlan(false)});
 $('generateBtn').addEventListener('click',()=>createPlan(true));
@@ -213,36 +346,55 @@ $('exportBtn').addEventListener('click',exportVideo);
 
 function chatGPTBrief(){
  if(!state.analysis||!state.media.length){status('Load your soundtrack & video clips before sending a brief to ChatGPT.','error');return}
- const prompt='Act as a music-video creative director. Return ONLY a JSON object with a "shots" array: each shot has mediaIndex (zero-based integer), beats (number 1-12), effect (one of natural,punch,noir,glitch,dream,vhs), and transition (one of cut,flash,dissolve,glitch). You may add a "style" (one of Bass Impact, Dark Cinema, Glitchcore, Dreamwave, 90s Alt, Clean Social) and "note". The webpage will repeat your shot pattern to fill the soundtrack. Design compelling rhythmic cuts, varied shots, and coherent transitions. Do not add markdown or comments. CRITICAL: Keep project video duration equal to the exact uploaded song duration; no time stretch or soundtrack edits.\n\nSong: '+state.audioFile.name+'\nExact duration seconds: '+state.analysis.duration.toFixed(5)+'\nEstimated BPM: '+state.analysis.bpm+' ('+state.analysis.confidence+')\nVideo format: '+$('aspect').value+'\nDirection: '+($('directorPrompt').value.trim()||state.style)+'\nAvailable media:\n'+state.media.slice(0,40).map((m,i)=>i+': '+m.name+' ('+m.kind+(m.kind==='video'?', '+m.duration.toFixed(2)+'s':'')+')').join('\n')+'\n\nSuggest about 8-24 shots. Prefer cuts on beats & dramatic passages.';
+ const prompt='Act as a music-video creative director. Return ONLY a JSON object with a "shots" array: each shot has mediaIndex (zero-based integer), beats (number 1-12), effect (one of '+EFFECTS.join(', ')+'), transition (one of '+TRANSITIONS.join(', ')+'), motion (one of '+MOTIONS.join(', ')+'), and speed (0.5-2). You may add a "style" (one of '+Object.keys(PRESETS).join(', ')+') and "note". Design a varied short-form edit that does not repeat adjacent footage, look, motion or transition. The webpage will loop your shot pattern to fill the song. Return JSON ONLY: no markdown or comments. CRITICAL: Keep the original soundtrack length without altering pitch, tempo or running time.\n\nSong: '+state.audioFile.name+'\nExact duration seconds: '+state.analysis.duration.toFixed(5)+'\nEstimated BPM: '+state.analysis.bpm+' ('+state.analysis.confidence+')\nVideo format: '+$('aspect').value+'\nDirection: '+($('directorPrompt').value.trim()||state.style)+'\nAvailable media:\n'+state.media.slice(0,40).map((m,i)=>i+': '+m.name+' ('+m.kind+(m.kind==='video'?', '+m.duration.toFixed(2)+'s':'')+')').join('\n')+'\n\nSuggest about 8-24 shots. Prefer cuts on beats & dramatic passages.';
  navigator.clipboard?.writeText(prompt).then(()=>{status('ChatGPT brief copied. Open ChatGPT, paste it, then paste its JSON response here.','ok')}).catch(()=>{window.prompt('Copy this editing brief:',prompt);status('Copy the editing brief, then paste it into ChatGPT.')});
  if(!navigator.clipboard)window.prompt('Copy this editing brief:',prompt);
 }
 function applyChatGPTPlan(){
- if(!state.analysis||!state.media.length){status('Load music & footage first.','error');return}
- let text=$('gptPlan').value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
- let obj;try{obj=JSON.parse(text)}catch{status('Paste a valid JSON edit plan returned by ChatGPT.','error');return}
- const shots=Array.isArray(obj.shots)?obj.shots.slice(0,200):[];
- if(!shots.length){status('ChatGPT JSON must contain a non-empty "shots" list.','error');return}
- if(PRESETS[obj.style])chooseStyle(obj.style);
- stopPreview();
- const length=duration(),beat=60/state.analysis.bpm;
- const effects=['natural','punch','noir','glitch','dream','vhs'],transitions=['cut','flash','dissolve','glitch'];
- const segments=[];let start=0,index=0;
- while(start<length-.00001&&segments.length<2400){
-  const p=shots[index%shots.length];
-  if(!p||typeof p!=='object'){status('Each shot needs an object with mediaIndex & beats.','error');return}
-  const mediaIndex=clamp(Math.floor(Number(p.mediaIndex)||0),0,state.media.length-1),m=state.media[mediaIndex];
-  const span=clamp(Number(p.beats)||4,1,12)*beat;
-  const end=Math.min(length,start+span);
-  segments.push({id:'s'+index,start:Number(start.toFixed(5)),end:Number(end.toFixed(5)),mediaId:m.id,sourceOffset:0,transition:index===0?'cut':transitions.includes(p.transition)?p.transition:'cut',effect:effects.includes(p.effect)?p.effect:PRESETS[state.style].effect});
-  start=end;index++;
- }
- if(segments.length)segments[segments.length-1].end=length;
- const plan={segments,duration:length,style:state.style,director:'ChatGPT-authored edit: '+String(obj.note||'Creative shot plan').slice(0,250)};
- if(!assertContinuous(plan)){status('ChatGPT scene plan did not fill the timeline.','error');return}
- state.plan=plan;updateTimeline();$('emptyPreview').hidden=true;syncSummary();seek(0);
- $('directorOutput').textContent='✦ '+plan.director+' · '+segments.length+' scenes · exact planned duration '+length.toFixed(2)+' seconds.';
- status('ChatGPT decisions applied to your editable timeline. Render when ready.','ok');
+  if(!state.analysis||!state.media.length){status('Load music & footage first.','error');return}
+  const raw=$('gptPlan').value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  let obj;try{obj=JSON.parse(raw)}catch{status('Paste valid JSON returned by ChatGPT.','error');return}
+  const shots=Array.isArray(obj.shots)?obj.shots.slice(0,200):[];
+  if(!shots.length){status('ChatGPT JSON needs a non-empty "shots" array.','error');return}
+  if(PRESETS[obj.style])chooseStyle(obj.style);
+  stopPreview();
+  const length=duration(),beat=60/state.analysis.bpm,segments=[];
+  const fallback=makePlan({duration:length,media:state.media,analysis:state.analysis,style:state.style,
+    seed:++state.seed,...variationOptions()});
+  let start=0,index=0;
+  while(start<length-.00001&&segments.length<2400){
+    const shot=shots[index%shots.length];
+    if(!shot||typeof shot!=='object'){status('Each requested shot must be a JSON object.','error');return}
+    const fallbackShot=fallback.segments[index%fallback.segments.length];
+    let mediaIndex=Number.isInteger(shot.mediaIndex)?clamp(shot.mediaIndex,0,state.media.length-1):state.media.findIndex(m=>m.id===fallbackShot.mediaId);
+    if(mediaIndex<0)mediaIndex=0;
+    let selected=state.media[mediaIndex];
+    const prev=segments[segments.length-1];
+    if($('avoidRepeats').checked&&prev?.mediaId===selected.id&&state.media.length>1)
+      selected=state.media[(mediaIndex+1)%state.media.length];
+    const requestedBeats=Number(shot.beats);
+    const count=clamp(Number.isFinite(requestedBeats)?requestedBeats:4,.5,12);
+    let end=Math.min(length,start+Math.max(.23,count*beat));
+    if(length-end<.2)end=length;
+    let effect=EFFECTS.includes(shot.effect)?shot.effect:fallbackShot.effect;
+    let motion=MOTIONS.includes(shot.motion)?shot.motion:fallbackShot.motion;
+    let transition=index===0?'cut':TRANSITIONS.includes(shot.transition)?shot.transition:fallbackShot.transition;
+    if($('avoidRepeats').checked&&prev){
+      if(effect===prev.effect)effect=EFFECTS[(EFFECTS.indexOf(effect)+1)%EFFECTS.length];
+      if(motion===prev.motion)motion=MOTIONS[(MOTIONS.indexOf(motion)+1)%MOTIONS.length];
+      if(transition===prev.transition)transition=TRANSITIONS[(TRANSITIONS.indexOf(transition)+1)%TRANSITIONS.length];
+    }
+    segments.push({...fallbackShot,id:'s'+index,start:Number(start.toFixed(5)),end:Number(end.toFixed(5)),
+      mediaId:selected.id,effect,motion,transition,sourceOffset:0,
+      speed:clamp(Number(shot.speed)||fallbackShot.speed,.5,2)});
+    start=end;index++;
+  }
+  if(segments.length)segments[segments.length-1].end=length;
+  const plan={segments,duration:length,style:state.style,director:'ChatGPT-directed variation: '+String(obj.note||'Unique shot pattern').slice(0,220)};
+  if(!assertContinuous(plan)){status('ChatGPT scene plan has a timing gap.','error');return}
+  state.plan=plan;updateTimeline();$('emptyPreview').hidden=true;syncSummary();seek(0);
+  $('directorOutput').textContent='✦ '+plan.director+' · '+segments.length+' varied scenes · exact project duration '+length.toFixed(3)+' seconds.';
+  status('ChatGPT edit decisions applied. Every shot gets a varied look & the soundtrack timing stays fixed.','ok');
 }
 $('copyGPTBrief').addEventListener('click',chatGPTBrief);
 $('applyGPTPlan').addEventListener('click',applyChatGPTPlan);
