@@ -278,14 +278,14 @@ function filename(){return ($('projectName').value.trim()||'GalaXia-AutoCut').re
 function savePlan(){if(!state.plan){status('Generate an edit first.','error');return}const payload={version:1,creator:'GalaXia AutoCut Studio',audio:state.audioFile?.name,durationLock:$('durationLock').checked,audioDuration:state.analysis?.duration,videoDuration:state.plan.duration,tempo:state.analysis?.bpm,tempoConfidence:state.analysis?.confidence,direction:$('directorPrompt').value,aspect:$('aspect').value,media:state.media.map(({id,name,kind,duration})=>({id,name,kind,duration})),scenes:state.plan.segments};downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),filename()+'-edit-plan.json');status('Edit plan downloaded. This is metadata, not a rendered video.','ok')}
 function renderCompatible(){
  if(!canvas.captureStream||!window.MediaRecorder||!(window.AudioContext||window.webkitAudioContext))return null;
- const candidates=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+ const candidates=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4'];
  return candidates.find(t=>MediaRecorder.isTypeSupported(t))||null;
 }
 async function exportVideo(){
  if(state.rendering)return;
  if(!state.plan||!state.audioBuffer){status('Load audio + media and generate an edit first.','error');return}
  if(!assertContinuous(state.plan)){status('Cannot export: the edit contains a timeline gap.','error');return}
- const mime=renderCompatible();if(!mime){status('This browser cannot record WebM with audio. Try Chrome or Edge on a desktop, or download the edit plan.','error');return}
+ const mime=renderCompatible();if(!mime){status('This browser cannot record WebM or MP4 with audio. Try Chrome or Edge on desktop, or download the editable plan.','error');return}
  stopPreview();state.rendering=true;$('exportBtn').disabled=true;$('generateBtn').disabled=true;$('renderProgress').hidden=false;$('renderProgress').value=0;status('Rendering in real time. Keep this tab visible until the file downloads…');
  let ac=null,src=null,recorder=null,stream=null,frameId=0,done=false;
  try{
@@ -303,7 +303,8 @@ async function exportVideo(){
   frameId=requestAnimationFrame(paint);
   const blob=await finished;
   if(!blob.size)throw Error('Recorder returned an empty file');
-  downloadBlob(blob,filename()+'.webm');status('Video downloaded · '+fmt(length)+' timeline · '+(blob.size/1024/1024).toFixed(1)+' MB. Container timing can vary by a frame.','ok');
+  const extension=mime.startsWith('video/mp4')?'.mp4':'.webm';
+  downloadBlob(blob,filename()+extension);status('Video downloaded · '+fmt(length)+' timeline · '+(blob.size/1024/1024).toFixed(1)+' MB. Container timing can vary by a frame.','ok');
  }catch(err){status('Render failed: '+err.message,'error')}finally{
   done=true;if(frameId)cancelAnimationFrame(frameId);try{if(src)src.stop()}catch{};try{if(recorder?.state==='recording')recorder.stop()}catch{};if(stream)stream.getTracks().forEach(track=>track.stop());try{await ac?.close()}catch{};
   state.rendering=false;$('exportBtn').disabled=false;$('generateBtn').disabled=false;$('renderProgress').hidden=true;for(const m of state.media){if(m.kind==='video')m.el.pause()}stopPreview();
