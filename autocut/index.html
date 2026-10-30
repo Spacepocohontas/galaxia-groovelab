@@ -46,14 +46,24 @@
       <div class="track-details" id="trackDetails"><div class="track-icon">♫</div><div><strong id="trackTitle">No soundtrack selected</strong><small id="trackInfo">Your song is the master timeline</small></div><span class="track-length" id="trackLength">—</span></div>
       <div id="mediaList" class="media-list"><span class="placeholder-line">Your footage collection will appear here.</span></div>
      </section>
-     <section class="panel direction-panel"><div class="panel-heading"><div><span class="section-number">02</span><h2>Choose an edit style</h2></div><span class="info-chip">6 CREATIVE PRESETS</span></div>
-      <div class="styles-grid" id="styleGrid">
-       <button class="style-tile selected" data-style="Bass Impact"><span class="style-icon">ϟ</span><b>Bass Impact</b><small>Hard-hitting drops</small></button>
-       <button class="style-tile" data-style="Dark Cinema"><span class="style-icon">◈</span><b>Dark Cinema</b><small>Slow, dramatic cuts</small></button>
-       <button class="style-tile" data-style="Glitchcore"><span class="style-icon">▥</span><b>Glitchcore</b><small>Distorted & frantic</small></button>
-       <button class="style-tile" data-style="Dreamwave"><span class="style-icon">✧</span><b>Dreamwave</b><small>Floaty & ethereal</small></button>
-       <button class="style-tile" data-style="90s Alt"><span class="style-icon">▤</span><b>90s Alt</b><small>VHS tape energy</small></button>
-       <button class="style-tile" data-style="Clean Social"><span class="style-icon">◫</span><b>Clean Social</b><small>Crisp, punchy edits</small></button>
+     <section class="panel direction-panel"><div class="panel-heading"><div><span class="section-number">02</span><h2>Choose an edit style</h2></div><span class="info-chip">25 AUTO-TEMPLATES</span></div>
+      <div class="template-searchbar">
+        <label><span class="sr-only">Search templates</span><input id="templateSearch" type="search" placeholder="Search 25 automatic editing templates…" autocomplete="off"></label>
+        <label><span class="sr-only">Template category</span>
+          <select id="templateFilter"><option value="All">All styles</option><option value="Viral">⚡ Viral</option><option value="Cinematic">🎬 Cinematic</option><option value="Retro">📼 Retro</option><option value="Experimental">🌀 Experimental</option></select>
+        </label>
+        <span id="templateCount" class="template-count">25 STYLES</span>
+      </div>
+      <div class="styles-grid" id="styleGrid" aria-label="Automatic edit templates"></div>
+      <div class="variety-panel">
+        <div class="variety-header"><span class="variety-symbol">✴</span><div><b>EVERY SHOT DIFFERENT</b><small>Automatic anti-repeat editing, speed variations, new angles & FX.</small></div></div>
+        <label class="variety-label" for="variation">Variety strength <strong id="variationValue">85%</strong></label>
+        <input id="variation" type="range" min="0" max="100" value="85" step="5">
+        <div class="variety-options">
+          <label><input id="avoidRepeats" type="checkbox" checked> Avoid repeating a clip or effect twice in a row</label>
+          <label><input id="dynamics" type="checkbox" checked> Follow the music's energy: faster on drops, slower on quiet sections</label>
+          <label><input id="safeFlash" type="checkbox" checked> Soften bright flashes</label>
+        </div>
       </div>
       <div class="director-block"><div class="director-heading"><span class="director-icon">✦</span><span><b>Creative Director</b><small>Tell the editor what to do — local prompt interpretation, no API key.</small></span></div>
        <label class="sr-only" for="directorPrompt">Editing instructions</label><textarea id="directorPrompt" placeholder="Make it dark & cinematic. Rapid cuts on bass hits, glitchy transitions during verses, slow motion feeling before the big drop. Keep my full original song length..."></textarea>
@@ -65,14 +75,14 @@
        <label for="gptPlan">PASTE CHATGPT'S EDIT JSON</label><textarea id="gptPlan" spellcheck="false" placeholder='{"shots":[{"mediaIndex":0,"beats":2,"effect":"glitch","transition":"flash"}]}'></textarea>
        <button id="applyGPTPlan" class="btn subtle">✦ Apply ChatGPT's scene decisions</button>
       </details>
-      <div class="action-row"><button id="generateBtn" class="btn primary">✦ &nbsp; Generate my edit <span>→</span></button><button id="shuffleBtn" class="btn subtle" title="Regenerate with different source ordering">⤨ Reshuffle</button></div>
+      <div class="action-row"><button id="generateBtn" class="btn primary">✦ &nbsp; Generate my edit <span>→</span></button><button id="shuffleBtn" class="btn subtle" title="Generate a different arrangement of clips, effects and pacing">⤨ Remix again</button><button id="surpriseBtn" class="btn surprise" title="Choose a random template and create a fresh edit">⚡ Surprise me</button></div>
       <p id="directorOutput" class="director-output" role="status">Choose a preset or describe your direction, then generate a timeline.</p>
      </section>
      <section class="panel timeline-panel"><div class="panel-heading"><div><span class="section-number">03</span><h2>Beat-synced timeline</h2></div><span class="info-chip" id="sceneCount">0 CUTS</span></div>
       <div class="wavebar"><div class="wavebar-label"><span>MASTER AUDIO</span><span class="tempo-picker"><span id="bpmReadout">BPM —</span><label>ADJUST <input id="bpmInput" type="number" aria-label="Manual beats per minute" min="62" max="190" step=".1" value="120"></label></span></div><canvas id="waveform" width="800" height="90" aria-label="Soundtrack waveform; click to seek"></canvas><div class="wavebar-foot"><span>0:00</span><span id="waveEnd">0:00</span></div></div>
       <div class="timeline-label"><span>VIDEO TRACK <small>Click a segment to seek · change footage & effects below</small></span><span id="timelineDuration">0:00</span></div>
       <div id="timelineBar" class="timeline-bar"><span class="timeline-empty">Your edited shots will appear on this timeline.</span></div>
-      <div id="sceneInspector" class="scene-inspector"><div class="empty-scene">Generate an edit to inspect & customize individual scenes.</div></div>
+      <div id="sceneInspector" class="scene-inspector"><div class="empty-scene">Generate an edit to inspect footage, effects, motion, speed & transition for every shot.</div></div>
      </section>
     </div>
     <div class="right-column">
