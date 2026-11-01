@@ -30,8 +30,40 @@ if(a.accessory==='crown'){for(let i=-2;i<=2;i++){let x=i*.14;
  tube([x,3.18*tall,-.04],[x, (3.27+(i===0?.15:.06))*tall,-.04],.023,.008,'#d6b2de');
  ball(x,(3.27+(i===0?.15:.06))*tall,-.04,.028,.028,.025,i===0?'#ff68bc':'#9a7cff');}}
 if(a.accessory==='headphones'){for(let side of [-1,1])ball(side*.33,2.83*tall,.035,.08,.21,.08,'#bb68c9');tube([-.32,2.99*tall,0],[.32,2.99*tall,0],.06,.06,'#332439');}
-// Legs: articulated hips, knees, high-heeled boots.
-const hipY=(1.37+bounce)*tall;for(let dir of [-1,1]){const raise=dir<0?leftKick:rightKick;const stepSide=(pose?(dir<0?pose.legL:pose.legR):0)*.003,extraKnee=Math.max(0,pose?(dir<0?pose.kneeL:pose.kneeR):0)*.004;const knee=[dir*(.18+hips*.12)+stepSide*.4,(.75+bounce+raise+extraKnee*.5)*tall,.035+raise*.26+extraKnee*.1];const hip=[dir*.18+hips*.17,hipY,0];const foot=[dir*(.2+step*.035)+stepSide,(.16+raise*.65+extraKnee*.4)*tall,.12+raise*.35];tube(hip,knee,male?.128:.15,.10,pants);tube(knee,foot,male?.10:.11,.075,pants);ball(foot[0],foot[1],foot[2]+.09,male?.17:.14,.11,.24,a.shoes||'#17131e');tube([foot[0],foot[1]-.02,foot[2]],[foot[0],foot[1]-.09,foot[2]-.04],.075,.06,'#17121d');}
+// Ground-aware feet with articulated two-bone legs, preserving limb length.
+const hipY=(1.37+bounce)*tall;
+for(const dir of [-1,1]){
+ const cycle=((ph/(2*PI)+(dir<0?0:.5))%1+1)%1;
+ const stance=cycle<.61, t=stance?cycle/.61:(cycle-.61)/.39;
+ const smooth=t*t*(3-2*t), travel=stance?.5-smooth:-.5+smooth;
+ const swing=stance?0:Math.sin(t*PI);
+ const strideType=move==='headbang'?.025:move==='sultry'?.08:move==='sway'?.07:
+  ['shuffle','moonwalk'].includes(move)?.23:['rave','wild'].includes(move)?.19:.135;
+ const motion=Math.max(0,Math.min(1.25,intensity));
+ const legAngle=pose?(dir<0?pose.legL:pose.legR):0;
+ const kneeAngle=pose?(dir<0?pose.kneeL:pose.kneeR):0;
+ const hip=[dir*.18+hips*.17,hipY,0];
+ const foot=[
+  dir*.20+travel*strideType*motion*2+legAngle*.0011*motion,
+  (.15+swing*(.14+strideType*.4)*motion+Math.max(0,kneeAngle)*.0008)*tall,
+  .13+swing*.14*motion
+ ];
+ const upper=.69*tall,lower=.66*tall;
+ const delta=vecsub(foot,hip),d=Math.max(.001,Math.hypot(...delta));
+ const reach=Math.max(Math.abs(upper-lower)+.001,Math.min(d,upper+lower-.002));
+ const unit=delta.map(v=>v/d);
+ const advance=(upper*upper-lower*lower+reach*reach)/(2*reach);
+ const bend=Math.sqrt(Math.max(0,upper*upper-advance*advance));
+ const normal=norm([0,unit[2],-unit[1]]);
+ const knee=hip.map((v,i)=>v+unit[i]*advance+normal[i]*bend);
+ tube(hip,knee,male?.135:.147,male?.11:.12,pants);
+ ball(knee[0],knee[1],knee[2],.114,.111,.112,pants);
+ tube(knee,foot,male?.103:.113,.078,pants);
+ const boot=a.shoes||'#17131e';
+ ball(foot[0],foot[1]-.015,foot[2]+.09,male?.16:.14,.092,.23,boot);
+ ball(foot[0],foot[1]-.08,foot[2]+.1,male?.15:.135,.03,.22,'#100e16');
+ tube([foot[0],foot[1],foot[2]-.05],[foot[0],foot[1]-.072,foot[2]-.05],.072,.06,'#17121d');
+}
 // Swishing skirt panels / gothic gowns / punk plaid, articulated around steps.
 if(['raven','crimson','royal','pinkpop','punkplaid'].includes(outfit)){
  const formal=['raven','crimson','royal'].includes(outfit);const length=formal?.91:.35;
@@ -59,8 +91,30 @@ ball(lean*.55,(1.86+bounce)*tall,bodyTwist*.18,male?.46:.37,.52,male?.205:.23,co
 }}else if(outfit==='leather'){for(let dir of [-1,1]){const flap=Math.sin(ph*.65+dir)*.07*intensity;const x=dir*(.23+flap);tube([dir*.28,2.14*tall,.17],[x,1.18*tall,.22],.14,.08,'#12121c');tube([dir*.12,2.22*tall,.225],[dir*.25,1.76*tall,.245],.045,.015,dir>0?'#4b3b51':'#b8a6b5');tube([x,1.21*tall,.2],[dir*(.29+flap),.98*tall,.18],.10,.07,'#17131c');}ribbon([-.18,2.23*tall,.24],[.17,1.73*tall,.27],.022,'#bfb0c2');ball(0,1.50*tall,.235,.26,.043,.055,'#27212c');ball(0,1.50*tall,.290,.043,.035,.015,'#aaa0ad');}else {ribbon([-.3,1.48*tall,.17],[.3,1.48*tall,.17],.035,'#171420');}
 // Necklace and tiny metallic decoration.
 ball(0,2.255*tall,.25,.043,.043,.026,'#e6d8f2');
-// Arms move independently, with shoulder lifts and alternating accents.
-for(let dir of [-1,1]){const jazz=move==='wild'?.86:move==='rave'?.91:move==='popstar'?.70:move==='club'?.56:move==='sultry'?.24:move==='headbang'?.73:move==='goth'?.3:.42;const swing=Math.sin(ph+(dir>0?PI:0))*intensity*jazz;const reach=(['club','wild','rave','popstar'].includes(move)?Math.max(0,dir<0?double:-double)*.23:0)+armAccent*.08*dir;const shoulder=[dir*.39,(2.12+bounce+shoulderLift*(dir<0?1:.6))*tall,bodyTwist*dir*.08];const armAngle=pose?(dir<0?pose.armL:pose.armR):0,raised=Math.max(0,Math.min(1.15,(Math.abs(armAngle)-26)/118));const elbowBend=pose?(dir<0?pose.elbowL:pose.elbowR)/180:0;const elbow=[dir*(.57+swing*.19+reach-raised*.17),(1.78+bounce+swing*.16+shoulderLift*.4+raised*.43)*tall,.05+swing*.09+bodyTwist*.08];const wrist=[dir*(.65+swing*.20+reach*.8-raised*.29+elbowBend*.05),(1.43+bounce+(move==='wild'?Math.abs(swing)*.29:swing*.16)+shoulderLift*.2+raised*1.16+elbowBend*.09)*tall,.2+Math.abs(swing)*.08];tube(shoulder,elbow,.12,.09,outfit==='leather'?coat:skin);tube(elbow,wrist,.087,.06,outfit==='leather'?coat:skin);ball(wrist[0],wrist[1]-.045,wrist[2],.069,.099,.056,skin);}
+// Fixed-length shoulder-elbow-wrist motion follows the dance keyframes.
+for(const dir of [-1,1]){
+ const armPose=pose?(dir<0?pose.armL:pose.armR):dir*14;
+ const elbowPose=pose?(dir<0?pose.elbowL:pose.elbowR):dir*10;
+ const swing=Math.sin(ph+(dir>0?PI:0))*intensity;
+ const angle=Math.max(-150,Math.min(150,armPose+swing*12))*PI/180;
+ const shoulder=[dir*(male?.42:.385)+lean*.18,
+  (2.12+bounce+shoulderLift*(dir<0?1:.6))*tall,bodyTwist*.05];
+ const wrist=[shoulder[0]+Math.sin(angle)*.72+bodyTwist*.05,
+  shoulder[1]-Math.cos(angle)*.72*tall,.16+Math.abs(swing)*.044];
+ const upper=.44*tall,lower=.415*tall;
+ const delta=vecsub(wrist,shoulder),distance=Math.max(.001,Math.hypot(...delta));
+ const reach=Math.max(Math.abs(upper-lower)+.002,Math.min(distance,upper+lower-.002));
+ const unit=delta.map(v=>v/distance);
+ const advance=(upper*upper-lower*lower+reach*reach)/(2*reach);
+ const bend=Math.sqrt(Math.max(0,upper*upper-advance*advance));
+ const normal=norm([-unit[1]*dir,unit[0]*dir,.14+elbowPose*.0012]);
+ const elbow=shoulder.map((v,i)=>v+unit[i]*advance+normal[i]*bend);
+ const cloth=outfit==='leather'||male?coat:skin;
+ tube(shoulder,elbow,male?.147:.125,.103,cloth);
+ ball(elbow[0],elbow[1],elbow[2],.111,.11,.108,cloth);
+ tube(elbow,wrist,.10,.066,cloth);
+ ball(wrist[0],wrist[1]-.04,wrist[2],.075,.094,.055,skin);
+}
 // Neck and head have an intentional small rhythmic tilt.
 const faceX=lean*.55+bodyTwist*.18; tube([faceX,2.24*tall,0],[faceX,2.51*tall,bodyTwist*.06],.13,.12,skin);
 const headStart=tri.length;
