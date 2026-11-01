@@ -32,7 +32,7 @@ test('video playback uses drift tolerance and sparse seeks rather than per-frame
  assert.ok(app.includes('syncDecision('));
  assert.ok(app.includes('media.lastSeek=now'));
  assert.ok(app.includes('media.pendingSeek'));
- assert.ok(app.includes("if(el.paused)el.play().catch(()=>{})"));
+ assert.ok(app.includes('if(el.paused)el.play().catch(e=>{'),'video play rejections must be reported rather than silently discarded');
  assert.ok(css.includes('.performance-box'));
 });
 test('lip animation is disabled by default, loaded lazily and explicitly approximate',()=>{
@@ -68,4 +68,7 @@ test('video playback is unlocked from user click without blocking soundtrack sta
  assert.ok(first>0&&music>first,'picture play should be requested before audio play await');
  assert.ok(app.includes('void videoStart;'),'slow video decode must not stall audio timekeeping');
  assert.ok(app.includes('Video playback blocked or codec unsupported:'),'decoder failures should be visible');
+ assert.ok(app.includes('const videoFile=file.type.startsWith('),'Android file type fallback should be present');
+ assert.ok(app.includes('Lip effect paused; video continues.'),'optional face model must not break the preview');
+
 });
