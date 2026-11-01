@@ -227,12 +227,17 @@ export function parseDirection(prompt, initial = 'Bass Impact') {
 export function makePlan({
   duration, media, analysis, style: requestedStyle = 'Bass Impact',
   direction = '', seed = 0, beatsPerCut = null, variation = .85,
-  avoidRepeats = true, dynamics = true
+  avoidRepeats = true, dynamics = true, mixStyles = false,
+  shuffleFx = true, shuffleMotion = true, shuffleTransitions = true,
+  doubleFx = false
 }) {
   if (!Number.isFinite(duration) || duration <= 0) throw Error('Load a soundtrack or choose a valid timeline length');
   if (!Array.isArray(media) || !media.length) throw Error('Add at least one video or image');
   const creative = parseDirection(direction, requestedStyle);
   const preset = PRESETS[creative.style];
+  const allowedEffects = mixStyles ? EFFECTS : preset.effects;
+  const allowedMotions = mixStyles ? MOTIONS : preset.motions;
+  const allowedTransitions = mixStyles ? TRANSITIONS : preset.transitions;
   const random = rngFor(seed, creative.style, media);
   const beat = 60 / clamp(Number(analysis?.bpm) || 120, 62, 190);
   const baseBeats = clamp(Number(beatsPerCut) || creative.beats, .5, 12);
@@ -266,14 +271,14 @@ export function makePlan({
     if (duration - end < .22) end = duration;
     end = Math.min(end, duration);
     const mediaClip = nextMedia();
-    let effect = pickDifferent(preset.effects, prevEffect, random, avoidRepeats);
-    let motion = pickDifferent(preset.motions, prevMotion, random, avoidRepeats);
-    let transition = i === 0 ? 'cut' : pickDifferent(preset.transitions, prevTransition, random, avoidRepeats);
+    let effect = shuffleFx ? pickDifferent(allowedEffects, prevEffect, random, avoidRepeats) : allowedEffects[0];
+    let motion = shuffleMotion ? pickDifferent(allowedMotions, prevMotion, random, avoidRepeats) : allowedMotions[0];
+    let transition = i === 0 ? 'cut' : shuffleTransitions ? pickDifferent(allowedTransitions, prevTransition, random, avoidRepeats) : allowedTransitions[0];
     // The exact same shot presentation must never be repeated consecutively.
-    if (avoidRepeats && i > 0 && mediaClip.id === prevMediaId && effect === prevEffect) {
+    if (avoidRepeats && shuffleFx && i > 0 && mediaClip.id === prevMediaId && effect === prevEffect) {
       effect = pickDifferent(EFFECTS, prevEffect, random, true);
     }
-    if (avoidRepeats && i > 0 && motion === prevMotion) {
+    if (avoidRepeats && shuffleMotion && i > 0 && motion === prevMotion) {
       motion = pickDifferent(MOTIONS, prevMotion, random, true);
     }
     const crop = diversity < .1 ? 1.02 : 1.05 + random() * (.31 * diversity);
@@ -288,9 +293,12 @@ export function makePlan({
       offset = Number(((offset + .41) % usableSource).toFixed(3));
     }
     const color = pickDifferent(accentColors, lastAccent, random, true);
+    const secondaryEffect = doubleFx && shuffleFx
+      ? pickDifferent(['grain','vignette','neon','filmBurn','glitch','scanline','ghost','bloom','duotone'],effect,random,true)
+      : null;
     const segment = {
       id: 's' + i, start: Number(start.toFixed(5)), end: Number(end.toFixed(5)),
-      mediaId: mediaClip.id, sourceOffset: offset, transition, effect, motion,
+      mediaId: mediaClip.id, sourceOffset: offset, transition, effect, secondaryEffect, motion,
       crop: Number(crop.toFixed(3)), flip, speed, accent: color,
       intensity: Number((.25 + diversity * .7).toFixed(2)),
       variant: Math.floor(random() * 10000), energy: Number(energy.toFixed(2))
@@ -304,6 +312,7 @@ export function makePlan({
   return {
     segments, duration, style: creative.style,
     variation: diversity, avoidRepeats: Boolean(avoidRepeats), dynamics: Boolean(dynamics),
+    mixStyles: Boolean(mixStyles), doubleFx: Boolean(doubleFx),
     director: creative.message
   };
 }

@@ -25,6 +25,9 @@ jobs:
           node --check autocut/app.js
           node --check autocut/engine.mjs
           node --check autocut/effects.mjs
+          node --check autocut/director.mjs
+          node --check autocut/sync.mjs
+          node --check autocut/lip-sync.mjs
       - name: Validate beat engine
         run: npm test
         working-directory: autocut
