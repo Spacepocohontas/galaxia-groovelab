@@ -27,7 +27,7 @@
   <div class="rail-bottom"><span class="shield">♧</span><p><b>Local-first creativity</b><small>Your audio & footage stay in this browser.</small></p></div>
  </aside>
  <main>
-  <header class="topbar"><div class="topbar-left"><span class="crumb">GALAXIA OS</span><span class="chevron">›</span><strong>AutoCut Studio</strong><span class="beta">BETA</span></div><div class="top-actions"><span class="local-dot"></span><span class="local-text">ON-DEVICE EDITING</span><a class="top-link" href="../index.html">← Your apps</a></div></header>
+  <header class="topbar"><div class="topbar-left"><span class="crumb">GALAXIA OS</span><span class="chevron">›</span><strong>AutoCut Studio</strong><span class="beta">BETA</span></div><div class="top-actions"><button id="fullscreenApp" type="button" class="btn subtle tiny-top" title="Full-screen studio" aria-label="Enter full-screen studio">⛶ Full screen</button><span class="local-dot"></span><span class="local-text">ON-DEVICE EDITING</span><a class="top-link" href="../index.html">← Your apps</a></div></header>
   <div class="content">
    <section class="intro">
     <div class="intro-copy"><div class="eyebrow"><span class="sparkle">✳</span> CREATIVE VIDEO ENGINE <span class="version">V1.0</span></div>
@@ -63,7 +63,27 @@
           <label><input id="avoidRepeats" type="checkbox" checked> Avoid repeating a clip or effect twice in a row</label>
           <label><input id="dynamics" type="checkbox" checked> Follow the music's energy: faster on drops, slower on quiet sections</label>
           <label><input id="safeFlash" type="checkbox" checked> Soften bright flashes</label>
+          <div class="combo-divider">COMBO SHUFFLE ENGINE</div>
+          <label><input id="mixStyles" type="checkbox" checked> Mix FX from different templates in one video</label>
+          <label><input id="shuffleFx" type="checkbox" checked> Shuffle visual FX every scene</label>
+          <label><input id="shuffleMotion" type="checkbox" checked> Shuffle camera motion / zoom / pans</label>
+          <label><input id="shuffleTransitions" type="checkbox" checked> Shuffle transitions between shots</label>
+          <label><input id="doubleFx" type="checkbox" checked> Combine two visual FX per scene</label>
         </div>
+      </div>
+      <div class="smart-director">
+        <div class="smart-header"><span class="smart-star">✦</span><div><b>Analyze soundtrack + footage</b><small>On-device color/motion & music-energy inspection. Add lyrics for song meaning. Doesn't guess words.</small></div></div>
+        <label for="lyricsInput" class="field-label">SONG LYRICS / STORY (OPTIONAL)</label>
+        <textarea id="lyricsInput" rows="3" placeholder="Paste song lyrics or describe what the song is about. Audio energy alone cannot reveal exact lyrics."></textarea>
+        <div class="analysis-actions">
+          <button id="analyzeBtn" type="button" class="btn smart-primary">✦ Analyze & create MV prompt</button>
+          <button id="copyMVPrompt" type="button" class="btn subtle" disabled>Copy MV brief</button>
+        </div>
+        <p class="analysis-status" id="analysisStatus" role="status">Load music & clips, then generate a tailored video direction.</p>
+        <textarea id="generatedMVPrompt" rows="6" readonly aria-label="Generated music video creative brief" placeholder="Your song-aware, footage-aware music video brief appears here…"></textarea>
+        <label class="check-row"><input type="checkbox" id="showSuggestedPrompts" checked> Show creative AI-style prompt suggestions <span class="check-caption">(on-device)</span></label>
+        <div id="promptSuggestions" class="suggestion-chips" aria-label="Suggested editing prompts"></div>
+        <button id="applyMVPrompt" type="button" class="btn subtle" disabled>Use recommended style + auto-edit →</button>
       </div>
       <div class="director-block"><div class="director-heading"><span class="director-icon">✦</span><span><b>Creative Director</b><small>Tell the editor what to do — local prompt interpretation, no API key.</small></span></div>
        <label class="sr-only" for="directorPrompt">Editing instructions</label><textarea id="directorPrompt" placeholder="Make it dark & cinematic. Rapid cuts on bass hits, glitchy transitions during verses, slow motion feeling before the big drop. Keep my full original song length..."></textarea>
@@ -86,11 +106,25 @@
      </section>
     </div>
     <div class="right-column">
-     <section class="panel preview-panel"><div class="panel-heading"><div><span class="section-number">LIVE</span><h2>Preview</h2></div><span class="preview-pill">● LIVE CANVAS</span></div>
+     <section class="panel preview-panel"><div class="panel-heading"><div><span class="section-number">LIVE</span><h2>Preview</h2></div><div class="preview-actions"><span class="preview-pill">● LIVE CANVAS</span><button id="fullscreenPreview" type="button" class="btn subtle small-full" title="Full-screen preview">⛶ Expand</button></div></div>
       <div class="format-row"><label>FORMAT <select id="aspect"><option value="9:16">9:16 Vertical</option><option value="16:9">16:9 Wide</option><option value="1:1">1:1 Square</option></select></label><label>QUALITY <select id="quality"><option value="540">Fast · 540p</option><option value="720" selected>HD · 720p</option><option value="1080">Full HD · 1080p</option></select></label></div>
       <div class="preview-shell"><div id="previewFrame" class="preview-frame"><canvas id="previewCanvas" width="540" height="960"></canvas><div id="emptyPreview" class="preview-empty"><div class="empty-preview-orbit">✦</div><b>THIS IS YOUR STAGE</b><span>Load music & footage to start creating.</span></div><div class="preview-brand">GalaXia // AUTOCUT</div></div></div>
       <div class="transport"><button id="previewStop" aria-label="Stop preview" title="Stop preview">◼</button><button id="previewPlay" class="play-button" aria-label="Play or pause preview">▶</button><input type="range" id="previewSeek" min="0" max="1000" value="0" aria-label="Seek in timeline"><span class="time-readout"><span id="currentTime">0:00</span> / <span id="totalTime">0:00</span></span></div>
-      <p class="preview-hint">Audio is the timing master. Video source audio is always muted.</p>
+      <div class="performance-box">
+        <div class="perf-heading"><strong>⚡ Playback & synchronization</strong><span id="syncState" class="perf-label">AUDIO MASTER ✓</span></div>
+        <div class="perf-settings">
+          <label>PREVIEW MODE <select id="performanceMode"><option value="auto" selected>Adaptive (recommended)</option><option value="smooth">Smooth / low lag</option><option value="quality">Maximum quality</option></select></label>
+          <label>VIDEO TIMING OFFSET <input id="videoOffset" type="number" step="25" min="-1200" max="1200" value="0"><small>ms · positive advances the picture</small></label>
+        </div>
+        <p id="lagReadout" class="lag-readout">Audio drives the timeline. AutoCut adjusts muted video playback without repeated frame seeking.</p>
+      </div>
+      <p class="preview-hint">Original song audio remains the master clock. Preview draws frames at an adaptive rate; export keeps its own quality setting.</p>
+     </section>
+     <section class="panel lip-panel"><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
+       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Face-tracked, audio-reactive visual dubbing · not exact word/phoneme lip-sync</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
+       <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
+       <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">
+       <p id="lipStatus" class="lip-status">Off. When enabled, a face-landmark model downloads once; footage stays on your device. This may lower FPS on slower devices.</p>
      </section>
      <section class="panel lock-panel"><div class="panel-heading"><div><span class="section-number">04</span><h2>Timeline rules</h2></div></div>
       <div class="lock-control"><div class="lock-icon">♙</div><div><b>Lock audio duration</b><small>Always match the uploaded song's full running time.</small></div><label class="switch"><input id="durationLock" type="checkbox" checked><span class="slider"></span><span class="sr-only">Lock audio duration</span></label></div>
