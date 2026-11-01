@@ -21,9 +21,12 @@ test('added lip, fullscreen, soundtrack analysis and performance controls all ex
 test('all new controls connected to event listeners',()=>{
  for(const id of ['fullscreenApp','fullscreenPreview','performanceMode','videoOffset',
  'lipSyncToggle','lipStrength','analyzeBtn','copyMVPrompt','showSuggestedPrompts',
- 'applyMVPrompt','mixStyles','shuffleFx','shuffleMotion','shuffleTransitions','doubleFx']){
+ 'applyMVPrompt']){
   assert.ok(app.includes("$('"+id+"').addEventListener("),id+' has no event listener');
  }
+ for(const key of ['mixStyles','shuffleFx','shuffleMotion','shuffleTransitions','doubleFx'])
+   assert.ok(app.includes("'"+key+"'"),'FX combo selector '+key+' was not wired');
+ assert.ok(app.includes('$(key).addEventListener('),'combo settings need a shared listener');
 });
 test('video playback uses drift tolerance and sparse seeks rather than per-frame seeking',()=>{
  assert.ok(app.includes('syncDecision('));
