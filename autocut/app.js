@@ -269,7 +269,7 @@ function setVideoMedia(media,target,shot,isForeground=true){
  }
  if(Math.abs(el.playbackRate-decision.rate)>.02)el.playbackRate=decision.rate;
  if(state.playing||state.rendering){
-   if(el.paused&&!media.pendingSeek)el.play().catch(()=>{});
+   if(el.paused)el.play().catch(()=>{});
  }else if(!el.paused)el.pause();
 }
 function drawSource(media,segment,time,alpha=1,foreground=true){
