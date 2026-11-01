@@ -43,6 +43,11 @@ test('lip animation is disabled by default, loaded lazily and explicitly approxi
  assert.ok(lip.includes('detectFrame=true'));
  assert.ok(app.includes("if($('lipSyncToggle').checked)void activateLipMotion()"));
  assert.ok(app.includes('state.lip.detect(canvas,performance.now()'));
+ assert.ok(lip.includes('this.avgDetectMs'));
+ assert.ok(lip.includes('this.missCount'));
+ assert.ok(app.includes('state.frameCostMs'));
+ assert.ok(app.includes('state.rendering ||'));
+ assert.ok(!app.includes('media.shotKey=shot.id;state.activeShot=shot.id;state.lip.reset()'));
  assert.ok(html.includes('role="status" aria-live="polite"'));
  assert.ok(html.includes('not automatic speech dubbing or precise phoneme alignment'));
  assert.ok(app.includes('state.lip.apply('));
