@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {wrappedDrift,syncDecision,videoDelayTarget,drawIntervalFor,syncStatus} from '../sync.mjs';
-import {mouthEnergy} from '../lip-sync.mjs';
+import {mouthEnergy,parseTimedLyrics} from '../lip-sync.mjs';
 import {analyzeSound,lyricMood,suggestMusicVideo} from '../director.mjs';
 import {makePlan,assertContinuous} from '../engine.mjs';
 
@@ -64,4 +64,13 @@ test('mix-and-match FX options keep timeline continuous',()=>{
  assert.ok(assertContinuous(single));
  assert.ok(single.segments.every(x=>!x.secondaryEffect));
  assert.ok(single.segments.every(x=>x.motion===single.segments[0].motion));
+});
+
+test('timed LRC lyrics produce approximate word cues, never fake recognition',()=>{
+ const cues=parseTimedLyrics('[00:01.00] Love will never die\n[00:03.00] Hold me tight');
+ assert.equal(cues.length,7);
+ assert.ok(Math.abs(cues[0].time-1)<1e-9);
+ assert.ok(cues[0].opening>=0&&cues[0].opening<=1);
+ assert.ok(cues.at(-1).time>3);
+ assert.deepEqual(parseTimedLyrics('Words without timestamps'),[]);
 });
