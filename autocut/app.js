@@ -81,11 +81,13 @@ function getImage(url){return new Promise((resolve,reject)=>{const image=new Ima
 async function addMedia(files){if(!files?.length)return;state.generatedBrief=null;state.mediaSummary=null;
  $('generatedMVPrompt').value='';$('copyMVPrompt').disabled=true;$('applyMVPrompt').disabled=true;status('Loading '+files.length+' media file(s)…');let added=0,failed=0;
  for(const file of files){
-   if(!file.type.startsWith('video/')&&!file.type.startsWith('image/')){failed++;continue}
+   const videoFile=file.type.startsWith('video/') || /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(file.name);
+   const imageFile=file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(file.name);
+   if(!videoFile&&!imageFile){failed++;continue}
    const url=URL.createObjectURL(file);
    let el;
    try{let kind,duration=0;
-    if(file.type.startsWith('image/')){el=await getImage(url);kind='image';}
+    if(imageFile){el=await getImage(url);kind='image';}
     else{
       el=document.createElement('video');
       el.muted=true;el.defaultMuted=true;el.playsInline=true;
@@ -356,8 +358,15 @@ function renderFrame(time){
    const target=videoDelayTarget(segment.sourceOffset,elapsed,segment.speed,Number($('videoOffset').value)||0);
    setVideoMedia(media,target,segment,true);
    showFrameLoading();
+   if(!media.notReadySince)media.notReadySince=performance.now();
+   const now=performance.now();
+   if(now-media.notReadySince>6000&&now-state.videoWarningAt>6000){
+     state.videoWarningAt=now;
+     status('Video still decoding: '+media.name+'. Unsupported codec? Try H.264 MP4 or WebM.','error');
+   }
    return;
  }
+ if(media.kind==='video')media.notReadySince=0;
  ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);
  if(state.lastMediaId&&state.lastMediaId!==media.id){
    const previousMedia=sceneMedia(state.lastMediaId);
@@ -392,10 +401,15 @@ function renderFrame(time){
  drawCutOverlay(ctx,canvas,segment,time,$('safeFlash').checked);
  state.hasGoodFrame=true;
  if($('lipSyncToggle').checked && state.lip.ready && media.kind==='video'){
-   state.lip.apply(ctx,canvas,state.analysis,time,{
-      strength:Number($('lipStrength').value)/100,
-      mode:$('performanceMode').value,enabled:true,now:performance.now()
-   });
+   try{
+     state.lip.apply(ctx,canvas,state.analysis,time,{
+       strength:Number($('lipStrength').value)/100,
+       mode:$('performanceMode').value,enabled:true,now:performance.now()
+     });
+   }catch(err){
+     state.lip.reset();
+     $('lipStatus').textContent='Lip effect paused; video continues. '+String(err.message||err).slice(0,100);
+   }
    const current=performance.now();
    if(current-state.lipAlertAt>3500){
      $('lipStatus').textContent=state.lip.status;
