@@ -421,6 +421,99 @@ async function exportVideo(){
   state.rendering=false;$('exportBtn').disabled=false;$('generateBtn').disabled=false;$('renderProgress').hidden=true;for(const m of state.media){if(m.kind==='video')m.el.pause()}stopPreview();
  }
 }
+// Local analysis is opt-in: media stays on device and we never invent unseen video subjects.
+function renderPromptSuggestions(){
+ const holder=$('promptSuggestions');holder.replaceChildren();
+ if(!$('showSuggestedPrompts').checked || !state.generatedBrief){holder.hidden=true;return}
+ holder.hidden=false;
+ for(const item of state.generatedBrief.prompts){
+   const btn=document.createElement('button');btn.type='button';btn.className='prompt-chip';
+   btn.textContent=item.slice(0,120);
+   btn.title=item;
+   btn.addEventListener('click',()=>{
+     $('directorPrompt').value=item;
+     status('Suggestion added. Generate an edit to apply it.','ok');
+     if(state.audioBuffer&&state.media.length)createPlan(true);
+   });
+   holder.append(btn);
+ }
+}
+function deriveSuggestedStyle(summary) {
+ const m=summary?.mood||'';
+ if(m.includes('dark')||m.includes('defiance'))return 'Dark Cinema';
+ if(m.includes('romance'))return 'Romantic Slowburn';
+ if(m.includes('heartbreak'))return 'Heartbreak Film';
+ if(summary?.movement?.includes('kinetic'))return 'Velocity Cuts';
+ if(summary?.dominant?.includes('purple'))return 'Neon Pulse';
+ return 'Trend Sync';
+}
+async function analyzeAndSuggest(){
+ if(state.scanBusy)return;
+ if(!state.analysis){status('Load a soundtrack to analyze its actual audio energy.','error');return}
+ if(!state.media.length){status('Upload footage to analyze its colors and movement.','error');return}
+ state.scanBusy=true;$('analyzeBtn').disabled=true;stopPreview();
+ $('analysisStatus').textContent='Analyzing soundtrack energy map…';
+ try{
+   const audioSummary=analyzeSound(state.analysis);
+   const videoSummary=await sampleFootage(state.media,(i,total,name)=>{
+     $('analysisStatus').textContent='Inspecting '+(i+1)+' / '+total+' framesets: '+name+'…';
+   });
+   const result=suggestMusicVideo({
+     audio:audioSummary,footage:videoSummary,lyrics:$('lyricsInput').value,
+     title:state.audioFile?.name||'Soundtrack',style:state.style
+   });
+   state.mediaSummary=videoSummary;state.generatedBrief=result;
+   $('generatedMVPrompt').value=result.prompt;
+   $('copyMVPrompt').disabled=false;$('applyMVPrompt').disabled=false;
+   renderPromptSuggestions();
+   $('analysisStatus').textContent='Analysis ready: '+result.summary.bpm+' BPM · '+result.summary.footage
+     +' clip(s) · '+result.summary.dominant+' palette · '+result.summary.movement
+     +' · story hint: '+result.summary.mood+'.';
+   status('Music-video creative prompt generated locally; copy it into ChatGPT or use a suggested edit.','ok');
+ }catch(error){
+   $('analysisStatus').textContent='Analysis issue: '+String(error.message||error);
+   status('Some video files could not be analyzed; try another codec or fewer clips.','error');
+ }finally{state.scanBusy=false;$('analyzeBtn').disabled=false}
+}
+function copyCreativePrompt(){
+ const text=$('generatedMVPrompt').value;
+ if(!text){status('Analyze music and footage first.','error');return}
+ if(navigator.clipboard?.writeText){
+   navigator.clipboard.writeText(text).then(()=>status('Music-video prompt copied for ChatGPT.','ok'))
+     .catch(()=>{window.prompt('Copy creative video prompt:',text)});
+ }else window.prompt('Copy creative video prompt:',text);
+}
+function applyCreativeSuggestions(){
+ if(!state.generatedBrief){status('Analyze music and footage first.','error');return}
+ const recommended=deriveSuggestedStyle(state.generatedBrief.summary);
+ chooseStyle(recommended);templateLibrary();
+ $('directorPrompt').value=state.generatedBrief.prompts[0];
+ $('mixStyles').checked=true;$('shuffleFx').checked=true;
+ $('shuffleMotion').checked=true;$('shuffleTransitions').checked=true;
+ $('avoidRepeats').checked=true;
+ createPlan(true);
+ status('Suggested '+recommended+' treatment applied to a varied edit.','ok');
+}
+async function changeLipSync(){
+ const enabled=$('lipSyncToggle').checked;
+ if(!enabled){$('lipStatus').textContent='Off · lip animation adds no workload.';state.lip.reset();renderFrame(state.position);return}
+ if(!state.audioBuffer){$('lipSyncToggle').checked=false;status('Load a soundtrack before enabling lip motion.','error');return}
+ $('lipStatus').textContent='Loading face landmark model. Your footage is processed locally.';
+ try{
+   await state.lip.enable(message=>$('lipStatus').textContent=message);
+   $('lipStatus').textContent='Active · experimental face tracking. Visual lips react to song energy, not exact sung phonemes.';
+   renderFrame(state.position);
+ }catch(error){
+   $('lipSyncToggle').checked=false;
+   $('lipStatus').textContent='Face-tracking model unavailable; turned off. '+String(error.message||error);
+ }
+}
+function toggleFullscreen(target){
+ if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});return}
+ if(target.requestFullscreen)target.requestFullscreen().catch(()=>target.classList.toggle('fullscreen-fallback'));
+ else target.classList.toggle('fullscreen-fallback');
+}
+
 $('audioInput').addEventListener('change',e=>{loadAudio(e.target.files?.[0]);e.target.value=''});
 $('mediaInput').addEventListener('change',e=>{addMedia([...e.target.files]);e.target.value=''});
 function dropSupport(id,handler){const el=$(id);['dragenter','dragover'].forEach(event=>el.addEventListener(event,e=>{e.preventDefault();el.classList.add('drag-over')}));['dragleave','drop'].forEach(event=>el.addEventListener(event,e=>{e.preventDefault();el.classList.remove('drag-over')}));el.addEventListener('drop',e=>handler([...e.dataTransfer.files]))}
