@@ -9,7 +9,7 @@ const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[
  seed:0,plan:null,selectedId:null,playing:false,position:0,playStart:0,rendering:false,raf:0,
  lastMediaId:null,activeShot:null,lastPaintAt:0,previewLooped:false,frameAge:0,hasGoodFrame:false,videoWarningAt:0,
  lastDrift:0,mediaSummary:null,videoSummary:null,generatedBrief:null,
- lip:new LipMotion(),lipAlertAt:0,scanBusy:false};
+ lip:new LipMotion(),lipAlertAt:0,scanBusy:false,frameCostMs:0};
 const audio=new Audio();
 audio.preload='auto';
 audio.volume=1;
@@ -43,8 +43,10 @@ function settings(exporting=state.rendering){
  if(!exporting) {
   const mode=$('performanceMode').value;
   const mobile=matchMedia('(max-width:780px)').matches;
-  if(mode==='smooth')quality=Math.min(quality,360);
-  else if(mode==='auto')quality=Math.min(quality,mobile?360:540);
+  const tracking=$('lipSyncToggle')?.checked;
+  if(mode==='smooth')quality=Math.min(quality,mobile?240:360);
+  else if(mode==='auto')quality=Math.min(quality,mobile?(tracking?270:320):(tracking?440:540));
+  else if(mobile&&tracking)quality=Math.min(quality,480);
  }
  let width,height;if(a<b){width=quality;height=Math.round(quality*b/a)}else if(a>b){height=quality;width=Math.round(quality*a/b)}else{width=quality;height=quality}
 return {width,height};
@@ -275,6 +277,7 @@ function createPlan(randomize=true) {
   if(!state.media.length){status('Add at least one video or image first.','error');return}
   stopPreview();
   state.hasGoodFrame=false;
+  state.lip.reset();
   if(randomize)state.seed++;
   const instructions=$('directorPrompt').value.trim();
   const director=parseDirection(instructions,state.style);
@@ -308,7 +311,7 @@ function setVideoMedia(media,target,shot,isForeground=true){
  const speed=clamp(Number(shot.speed)||1,.5,2);
  const desired=(target%media.duration+media.duration)%media.duration;
  const entering=media.shotKey!==shot.id || state.activeShot!==shot.id;
- if(entering){media.shotKey=shot.id;state.activeShot=shot.id;state.lip.reset();}
+ if(entering){media.shotKey=shot.id;state.activeShot=shot.id;}
  const decision=syncDecision({
    actual:el.currentTime,desired,duration:media.duration,speed,
    now,lastSeek:media.lastSeek,newClip:entering,mode:$('performanceMode').value
@@ -371,6 +374,7 @@ function renderFrame(time){
  if(media.kind==='video')media.notReadySince=0;
  ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);
  if(state.lastMediaId&&state.lastMediaId!==media.id){
+   state.lip.reset(); // Only reset when the underlying video changes.
    const previousMedia=sceneMedia(state.lastMediaId);
    if(previousMedia?.kind==='video')previousMedia.el.pause();
  }
@@ -399,7 +403,8 @@ function renderFrame(time){
   state.lip.detect(canvas,performance.now(),$('performanceMode').value);
  }
  drawTreatment(ctx,canvas,segment,time,$('safeFlash').checked);
- if(segment.secondaryEffect && segment.secondaryEffect!==segment.effect){
+ if(segment.secondaryEffect && segment.secondaryEffect!==segment.effect &&
+   (state.rendering || !$('lipSyncToggle').checked || $('performanceMode').value==='quality')){
    // A second overlay treatment, not a second full-frame re-decode.
    drawTreatment(ctx,canvas,{...segment,effect:segment.secondaryEffect,intensity:(segment.intensity||.7)*.5},time,$('safeFlash').checked);
  }
@@ -452,9 +457,20 @@ function tick(now){
  }
  state.position=clamp(t,0,d);
  const mode=$('performanceMode').value;
- const interval=drawIntervalFor(mode,matchMedia('(max-width:780px)').matches);
- if(!state.lastPaintAt||now-state.lastPaintAt>=interval){
-   state.lastPaintAt=now;renderFrame(state.position);updateTransport();
+ const mobile=matchMedia('(max-width:780px)').matches;
+  const lipActive=$('lipSyncToggle').checked&&state.lip.ready;
+  const baseInterval=drawIntervalFor(mode,mobile);
+  const lowPower=lipActive&&mode!=='quality';
+  const interval=lowPower
+    ? Math.max(baseInterval,mobile?1000/16:1000/20,state.frameCostMs>45?1000/12:0)
+    : baseInterval;
+  if(!state.lastPaintAt||now-state.lastPaintAt>=interval){
+    state.lastPaintAt=now;
+    const paintStart=performance.now();
+    renderFrame(state.position);
+    const cost=performance.now()-paintStart;
+    state.frameCostMs=state.frameCostMs?state.frameCostMs*.85+cost*.15:cost;
+    updateTransport();
    if(Math.floor(now/1200)!==Math.floor((now-interval)/1200))reportSync();
  }
  state.raf=requestAnimationFrame(tick);
@@ -614,7 +630,7 @@ async function activateLipMotion(){
   await state.lip.enable(message=>{if(toggle.checked)label.textContent=message});
   if(!toggle.checked)return;
   const cues=state.lip.setLyrics($('lyricsInput').value);
-  label.textContent='Ready · Press Play. '+(cues?cues+' timed lyrics loaded. ':'')+'This animates the mouth approximately; it does not dub speech.';
+  label.textContent='Ready · Low-lag tracking active. '+(cues?cues+' timed lyrics loaded. ':'')+'Live preview uses lighter FX; export retains full FX.';
   renderFrame(state.position);
  }catch(error){
   if(toggle.checked){
@@ -628,8 +644,10 @@ async function changeLipSync(){
  if(!$('lipSyncToggle').checked){
   state.lip.reset();
   $('lipStatus').textContent='Off · lip animation disabled.';
+  resizeCanvas();
   return;
  }
+ resizeCanvas();
  await activateLipMotion();
 }
 function toggleFullscreen(target){
