@@ -39,13 +39,13 @@ test('lip animation is disabled by default, loaded lazily and explicitly approxi
  assert.ok(html.includes('id="lipSyncToggle" type="checkbox"'));
  assert.ok(!html.includes('id="lipSyncToggle" type="checkbox" checked'));
  assert.ok(lip.includes('await import(VISION)'));
- assert.ok(html.includes('not exact word/phoneme lip-sync'));
+ assert.ok(html.includes('NOT true word/phoneme accuracy'));
  assert.ok(app.includes('state.lip.apply('));
 });
 test('music video brief uses visual and audio local analysis without falsely claiming lyric recognition',()=>{
  assert.ok(app.includes('sampleFootage('));
  assert.ok(app.includes('analyzeSound('));
  assert.ok(app.includes('suggestMusicVideo('));
- assert.ok(html.includes('Audio energy alone cannot reveal exact lyrics.'));
+ assert.ok(html.includes('Audio alone cannot identify words.'));
  assert.ok(css.includes('.smart-director'));
 });
