@@ -271,6 +271,16 @@ function updateDanceMotion(){
    if(foreR)foreR.style.transform=`rotate(${pose.elbowR.toFixed(1)}deg)`;
    if(shinL)shinL.style.transform=`rotate(${(-pose.kneeL*.6).toFixed(1)}deg)`;
    if(shinR)shinR.style.transform=`rotate(${(pose.kneeR*.6).toFixed(1)}deg)`;
+   const footL=sprite.querySelector('.sprite-foot-left');
+   const footR=sprite.querySelector('.sprite-foot-right');
+   if(footL){
+     footL.style.transformOrigin='60px 288px';
+     footL.style.transform=`rotate(${(-pose.legL+pose.kneeL*.6).toFixed(1)}deg)`;
+   }
+   if(footR){
+     footR.style.transformOrigin='100px 288px';
+     footR.style.transform=`rotate(${(-pose.legR-pose.kneeR*.6).toFixed(1)}deg)`;
+   }
    if(torso)torso.style.transform=`rotate(${(pose.torso*.4).toFixed(1)}deg) translateX(${(pose.hip*.05).toFixed(1)}px)`;
    if(hair)hair.style.transform=`rotate(${(-pose.head*.42).toFixed(1)}deg) translateX(${(-pose.torso*.11).toFixed(1)}px)`;
   }
