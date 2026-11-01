@@ -58,6 +58,7 @@ export class LipMotion {
  constructor(){
   this.lyricCues=[];this.ready=false;this.loading=null;this.model=null;this.lastDetection=-Infinity;
   this.face=null;this.scan=null;this.patch=null;this.status='Off';this.frameToken=0;
+  this.avgDetectMs=0;this.missCount=0;
  }
  async enable(onStatus=()=>{}){
   if(this.ready)return true;
@@ -77,7 +78,7 @@ export class LipMotion {
     runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,
     minFacePresenceConfidence:.55,minTrackingConfidence:.55
    });
-   this.scan=document.createElement('canvas');this.scan.width=256;this.scan.height=256;
+   this.scan=document.createElement('canvas');this.scan.width=144;this.scan.height=192;
    this.patch=document.createElement('canvas');this.patch.width=200;this.patch.height=95;
    this.ready=true;this.status='Face tracking loaded (approximate mouth motion)';
    onStatus(this.status);return true;
@@ -87,7 +88,7 @@ export class LipMotion {
   });
   return this.loading;
  }
- reset(){this.face=null;this.lastDetection=-Infinity;}
+ reset(){this.face=null;this.lastDetection=-Infinity;this.missCount=0;}
  setLyrics(text){this.lyricCues=parseTimedLyrics(text);return this.lyricCues.length;}
  destroy(){
   try{this.model?.close()}catch{}
@@ -95,19 +96,29 @@ export class LipMotion {
  }
  detect(canvas,clock,mode='auto'){
   if(!this.ready)return;
-  const interval=mode==='smooth'?460:mode==='quality'?200:320;
-  if(clock-this.lastDetection<interval)return;
+  // MediaPipe detect() runs synchronously on the main thread. Cap scanning and
+  // back off automatically when the device cannot keep up.
+  const mobile=typeof window!=='undefined' && (window.matchMedia?.('(max-width:780px)')?.matches ?? false);
+  const interval=mode==='smooth'?1400:mode==='quality'?(mobile?900:600):(mobile?1200:850);
+  const adaptive=Math.max(interval,this.avgDetectMs>70?3200:this.avgDetectMs>38?2300:0);
+  const noFaceDelay=this.missCount>=3?Math.max(adaptive,2000):adaptive;
+  if(clock-this.lastDetection<noFaceDelay)return;
   this.lastDetection=clock;
   try{
    const w=canvas.width,h=canvas.height;
-   const targetWidth=256,targetHeight=Math.max(96,Math.min(400,Math.round(256*h/w)));
+   const targetWidth=mobile?144:192;
+   const targetHeight=Math.max(80,Math.min(mobile?224:280,Math.round(targetWidth*h/w)));
    if(this.scan.width!==targetWidth)this.scan.width=targetWidth;
    if(this.scan.height!==targetHeight)this.scan.height=targetHeight;
    const c=this.scan.getContext('2d',{willReadFrequently:true});
    c.drawImage(canvas,0,0,this.scan.width,this.scan.height);
+   const started=performance.now();
    const result=this.model.detect(this.scan);
+   const inferenceMs=performance.now()-started;
+   this.avgDetectMs=this.avgDetectMs?this.avgDetectMs*.8+inferenceMs*.2:inferenceMs;
    const points=result?.faceLandmarks?.[0];
-   if(!points){this.face=null;this.status='No face detected in current shot';return}
+   if(!points){this.missCount++;this.face=null;this.status='No face detected · scanning slowly to save CPU';return}
+   this.missCount=0;
    const left=points[61],right=points[291],top=points[0],bottom=points[17];
    if(!left||!right||!top||!bottom){this.face=null;return}
    const x=(left.x+right.x)*.5,y=(top.y+bottom.y)*.5;
@@ -131,7 +142,9 @@ export class LipMotion {
   const w=Math.max(12,f.w*canvas.width),h=Math.max(8,f.h*canvas.height);
   const x=clamp(f.x*canvas.width-w/2,0,canvas.width-w),y=clamp(f.y*canvas.height-h/2,0,canvas.height-h);
   const patch=this.patch;
-  patch.width=Math.round(w);patch.height=Math.round(h);
+  const pw=Math.round(w),ph=Math.round(h);
+  if(patch.width!==pw)patch.width=pw;
+  if(patch.height!==ph)patch.height=ph;
   const p=patch.getContext('2d');
   p.clearRect(0,0,patch.width,patch.height);
   p.drawImage(canvas,x,y,w,h,0,0,patch.width,patch.height);
