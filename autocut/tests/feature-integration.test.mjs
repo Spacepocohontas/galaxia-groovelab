@@ -44,7 +44,7 @@ test('lip animation is disabled by default, loaded lazily and explicitly approxi
  assert.ok(app.includes("if($('lipSyncToggle').checked)void activateLipMotion()"));
  assert.ok(app.includes('state.lip.detect(canvas,performance.now()'));
  assert.ok(html.includes('role="status" aria-live="polite"'));
- assert.ok(html.includes('NOT true word/phoneme accuracy'));
+ assert.ok(html.includes('not automatic speech dubbing or precise phoneme alignment'));
  assert.ok(app.includes('state.lip.apply('));
 });
 test('music video brief uses visual and audio local analysis without falsely claiming lyric recognition',()=>{
@@ -74,6 +74,6 @@ test('video playback is unlocked from user click without blocking soundtrack sta
  assert.ok(app.includes('void videoStart;'),'slow video decode must not stall audio timekeeping');
  assert.ok(app.includes('Video playback blocked or codec unsupported:'),'decoder failures should be visible');
  assert.ok(app.includes('const videoFile=file.type.startsWith('),'Android file type fallback should be present');
- assert.ok(app.includes('Lip effect paused; video continues.'),'optional face model must not break the preview');
+ assert.ok(app.includes('Face tracking paused:'),'optional face model failures must not break the preview');
 
 });
