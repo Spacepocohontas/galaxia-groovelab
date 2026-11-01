@@ -49,3 +49,23 @@ test('music video brief uses visual and audio local analysis without falsely cla
  assert.ok(html.includes('Audio alone cannot identify words.'));
  assert.ok(css.includes('.smart-director'));
 });
+
+
+test('imported video has a mounted decoder and prepares frames before painting effects',()=>{
+ assert.ok(app.includes("videoRack.append(el)"),'video should remain attached for mobile decoding');
+ assert.ok(app.includes("el.setAttribute('playsinline','')"),'video should use inline playback');
+ assert.ok(app.includes("await readMetadata(el,'loadedmetadata')"),'metadata must be available');
+ assert.ok(app.includes("el.addEventListener('loadeddata',refresh)"),'decoded frames must repaint paused preview');
+ assert.ok(app.includes("el.addEventListener('seeked',refresh)"),'seek completion should repaint paused preview');
+ assert.ok(app.includes("if(!videoFrameReady(media))"),'undecoded frames must never replace a valid preview');
+ assert.ok(app.includes("showFrameLoading()"),'initial blank screen should show stable loading state');
+ assert.ok(app.includes("state.hasGoodFrame=true"),'preview should retain last decoded picture');
+ assert.ok(app.includes("&&videoFrameReady(oldMedia)"),'transitions must skip undecoded old video');
+});
+test('video playback is unlocked from user click without blocking soundtrack startup',()=>{
+ const first=app.indexOf("const videoStart=firstMedia?.kind==='video'");
+ const music=app.indexOf('await audio.play();',first);
+ assert.ok(first>0&&music>first,'picture play should be requested before audio play await');
+ assert.ok(app.includes('void videoStart;'),'slow video decode must not stall audio timekeeping');
+ assert.ok(app.includes('Video playback blocked or codec unsupported:'),'decoder failures should be visible');
+});
