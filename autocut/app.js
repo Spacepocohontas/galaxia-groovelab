@@ -501,7 +501,8 @@ async function changeLipSync(){
  $('lipStatus').textContent='Loading face landmark model. Your footage is processed locally.';
  try{
    await state.lip.enable(message=>$('lipStatus').textContent=message);
-   $('lipStatus').textContent='Active · experimental face tracking. Visual lips react to song energy, not exact sung phonemes.';
+   const cues=state.lip.setLyrics($('lyricsInput').value);
+   $('lipStatus').textContent='Active · experimental face tracking. '+(cues?cues+' approximate LRC word cues loaded; ':'')+'This is not precise phoneme sync.';
    renderFrame(state.position);
  }catch(error){
    $('lipSyncToggle').checked=false;
@@ -535,6 +536,10 @@ $('copyMVPrompt').addEventListener('click',copyCreativePrompt);
 $('applyMVPrompt').addEventListener('click',applyCreativeSuggestions);
 $('showSuggestedPrompts').addEventListener('change',renderPromptSuggestions);
 $('lipSyncToggle').addEventListener('change',changeLipSync);
+$('lyricsInput').addEventListener('input',()=>{
+  const cues=state.lip.setLyrics($('lyricsInput').value);
+  if(cues&&$('lipSyncToggle').checked)$('lipStatus').textContent='Approximate LRC word cues loaded: '+cues+' · song envelope still drives mouth motion.';
+});
 $('lipStrength').addEventListener('input',()=>{
   $('lipStrengthValue').textContent=$('lipStrength').value+'%';
   if(!state.playing&&!state.rendering)renderFrame(state.position);
