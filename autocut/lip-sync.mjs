@@ -16,9 +16,46 @@ export function mouthEnergy(audioAnalysis,seconds){
   const reference=audioAnalysis.rms||.09;
   return clamp((avg/reference-.15)*.52,0,1);
 }
+// Optional LRC timing helps align approximate syllabic mouth poses. Not forced alignment.
+export function parseTimedLyrics(text){
+ const lines=String(text||'').split(/\r?\n/).map(line=>{
+  const match=line.match(/^\s*\[(\d{1,2}):(\d{1,2}(?:\.\d{1,3})?)\]\s*(.*)\s*$/);
+  return match?{start:Number(match[1])*60+Number(match[2]),words:match[3].trim().split(/\s+/).filter(Boolean)}:null;
+ }).filter(x=>x&&x.words.length).sort((a,b)=>a.start-b.start).slice(0,1000);
+ const cues=[];
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i],next=lines[i+1];
+  const length=clamp((next?next.start-line.start:3.5),.5,12);
+  const wordSpan=length/line.words.length;
+  for(let j=0;j<line.words.length;j++){
+   const word=line.words[j].replace(/[^a-zA-ZÀ-ÿ]/g,'').toLowerCase();
+   const vowel=(word.match(/[aeiouyà-ÿ]/g)||[]).length;
+   const shape=/^[bmp]/.test(word)?.12:/[ao]/.test(word)?.88:/[ei]/.test(word)?.65:.42;
+   cues.push({time:line.start+j*wordSpan,end:line.start+(j+1)*wordSpan,
+     opening:clamp(shape+Math.min(vowel,3)*.035,0,1),word});
+  }
+ }
+ return cues;
+}
+function timedMouthEnergy(cues,seconds){
+ if(!cues?.length)return null;
+ let lo=0,hi=cues.length-1;
+ while(lo<=hi){
+  const mid=(lo+hi)>>1,cue=cues[mid];
+  if(seconds<cue.time)hi=mid-1;
+  else if(seconds>=cue.end)lo=mid+1;
+  else{
+    const phase=clamp((seconds-cue.time)/Math.max(.001,cue.end-cue.time),0,1);
+    const pulse=.65+.35*Math.sin(Math.PI*phase);
+    return cue.opening*pulse;
+  }
+ }
+ return null;
+}
+
 export class LipMotion {
  constructor(){
-  this.ready=false;this.loading=null;this.model=null;this.lastDetection=-Infinity;
+  this.lyricCues=[];this.ready=false;this.loading=null;this.model=null;this.lastDetection=-Infinity;
   this.face=null;this.scan=null;this.patch=null;this.status='Off';this.frameToken=0;
  }
  async enable(onStatus=()=>{}){
@@ -45,6 +82,7 @@ export class LipMotion {
   return this.loading;
  }
  reset(){this.face=null;this.lastDetection=-Infinity;}
+ setLyrics(text){this.lyricCues=parseTimedLyrics(text);return this.lyricCues.length;}
  destroy(){
   try{this.model?.close()}catch{}
   this.model=null;this.ready=false;this.loading=null;this.reset();
@@ -76,7 +114,9 @@ export class LipMotion {
   if(!enabled||!this.ready)return false;
   this.detect(canvas,now,mode);
   if(!this.face)return false;
-  const e=mouthEnergy(analysis,time);
+  const envelope=mouthEnergy(analysis,time);
+  const wordHint=timedMouthEnergy(this.lyricCues,time);
+  const e=wordHint===null?envelope:envelope*.45+wordHint*.55;
   const extent=clamp(Number(strength)||0,0,1)*e;
   if(extent<.04)return false;
   const f=this.face;
