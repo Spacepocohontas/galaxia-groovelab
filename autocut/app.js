@@ -1,8 +1,15 @@
 import {PRESETS,EFFECTS,TRANSITIONS,MOTIONS,clamp,fmt,summarizeAudio,parseDirection,makePlan,findSegment,assertContinuous} from './engine.mjs';
 import {drawShot,drawTreatment,drawCutOverlay,transitionMix} from './effects.mjs';
+import {syncDecision,videoDelayTarget,drawIntervalFor,syncStatus} from './sync.mjs';
+import {analyzeSound,sampleFootage,suggestMusicVideo} from './director.mjs';
+import {LipMotion} from './lip-sync.mjs';
 const $=(id)=>document.getElementById(id);
 const q=(selector)=>document.querySelector(selector);
-const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[],style:'Bass Impact',seed:0,plan:null,selectedId:null,playing:false,position:0,playStart:0,rendering:false,raf:0,lastMediaId:null,previewLooped:false};
+const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[],style:'Bass Impact',
+ seed:0,plan:null,selectedId:null,playing:false,position:0,playStart:0,rendering:false,raf:0,
+ lastMediaId:null,activeShot:null,lastPaintAt:0,previewLooped:false,frameAge:0,
+ lastDrift:0,mediaSummary:null,videoSummary:null,generatedBrief:null,
+ lip:new LipMotion(),lipAlertAt:0,scanBusy:false};
 const audio=new Audio();
 audio.preload='auto';
 audio.volume=1;
@@ -12,10 +19,26 @@ const styleButtons=()=>[...document.querySelectorAll('[data-style]')];
 const defaultCanvas=()=>{const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);g.addColorStop(0,'#3b224b');g.addColorStop(.6,'#1c152d');g.addColorStop(1,'#0c0a16');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#ead4f7';ctx.textAlign='center';ctx.font='700 '+Math.round(canvas.width*.08)+'px sans-serif';ctx.fillText('✦',canvas.width/2,canvas.height/2);};
 function status(message,kind=''){const el=$('status');el.textContent=message;el.className='status '+kind}
 function duration(){const master=state.analysis?.duration||0;if(!master)return 0;return $('durationLock').checked?master:clamp(Number($('customDuration').value)||master,.5,Math.max(3600,master*2))}
-function settings(){const [a,b]=$('aspect').value.split(':').map(Number);const quality=Number($('quality').value);let width,height;if(a<b){width=quality;height=Math.round(quality*b/a)}else if(a>b){height=quality;width=Math.round(quality*a/b)}else{width=quality;height=quality}
+function settings(exporting=state.rendering){
+ const [a,b]=$('aspect').value.split(':').map(Number);
+ let quality=Number($('quality').value);
+ if(!exporting) {
+  const mode=$('performanceMode').value;
+  const mobile=matchMedia('(max-width:780px)').matches;
+  if(mode==='smooth')quality=Math.min(quality,360);
+  else if(mode==='auto')quality=Math.min(quality,mobile?360:540);
+ }
+ let width,height;if(a<b){width=quality;height=Math.round(quality*b/a)}else if(a>b){height=quality;width=Math.round(quality*a/b)}else{width=quality;height=quality}
 return {width,height};
 }
-function resizeCanvas(){const {width,height}=settings();canvas.width=width;canvas.height=height;$('previewFrame').style.aspectRatio=String(width)+' / '+String(height);$('exportResolution').textContent=width+' × '+height;renderFrame(state.position);}
+function resizeCanvas(){
+ const {width,height}=settings();
+ if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+ const output=settings(true);
+ $('previewFrame').style.aspectRatio=String(width)+' / '+String(height);
+ $('exportResolution').textContent=output.width+' × '+output.height;
+ renderFrame(state.position);
+}
 function syncLengths(){const d=duration();$('songDuration').textContent=state.analysis?fmt(state.analysis.duration):'—';$('videoDuration').textContent=d?fmt(d):'—';$('exportLength').textContent=d?fmt(d):'—';$('totalTime').textContent=fmt(d);$('waveEnd').textContent=fmt(state.analysis?.duration||0);$('timelineDuration').textContent=fmt(d);$('unlockBox').hidden=$('durationLock').checked;$('lockMessage').innerHTML=$('durationLock').checked?'<span>✓</span> Lock is ON. The video timeline ends with the soundtrack; visuals loop or trim to fit.':'<span>↔</span> Lock is OFF. Your chosen video length controls the edit; audio repeats if needed.';if(state.plan&&Math.abs(state.plan.duration-d)>.0001)createPlan(false);}
 function readMetadata(element,event){return new Promise((resolve,reject)=>{if(element.readyState>=1&&Number.isFinite(element.duration)){resolve();return}const timeout=setTimeout(()=>{done();reject(Error('Media metadata timed out'))},12000);function done(){clearTimeout(timeout);element.removeEventListener(event,success);element.removeEventListener('error',fail)}function success(){done();resolve()}function fail(){done();reject(Error('Browser cannot decode this file'))}element.addEventListener(event,success,{once:true});element.addEventListener('error',fail,{once:true})})}
 async function loadAudio(file){if(!file)return;stopPreview();status('Decoding soundtrack & finding beats…');try{
@@ -44,7 +67,19 @@ async function addMedia(files){if(!files?.length)return;status('Loading '+files.
     if(file.type.startsWith('image/')){el=await getImage(url);kind='image';}
     else{el=document.createElement('video');el.src=url;el.muted=true;el.playsInline=true;el.preload='auto';await readMetadata(el,'loadedmetadata');duration=el.duration;kind='video';if(!Number.isFinite(duration)||duration<=0)throw Error('No video duration');}
     const id='m'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    state.media.push({id,name:file.name,kind,el,url,duration});
+    if(kind==='video'){
+      el.playsInline=true;el.loop=true;el.muted=true;
+      const frame={lastAt:0,presented:0,dropped:0,handle:null};
+      const follow=(now,metadata)=>{
+        frame.lastAt=now;
+        if(frame.presented)frame.dropped+=Math.max(0,(metadata.presentedFrames||0)-frame.presented-1);
+        frame.presented=metadata.presentedFrames||frame.presented;
+        if(el.src)frame.handle=el.requestVideoFrameCallback?.(follow);
+      };
+      if(el.requestVideoFrameCallback)frame.handle=el.requestVideoFrameCallback(follow);
+      el.__galaxiaFrame=frame;
+    }
+    state.media.push({id,name:file.name,kind,el,url,duration,lastSeek:-Infinity,shotKey:null,pendingSeek:false});
     added++;
    }catch(e){failed++;URL.revokeObjectURL(url);console.warn('Skipped media',file.name,e)}
  }
@@ -52,7 +87,8 @@ async function addMedia(files){if(!files?.length)return;status('Loading '+files.
  status(added+' file(s) loaded'+(failed?' · '+failed+' unsupported or unreadable file(s)':'')+'.',failed?'error':'ok');
 }
 function updateMediaList(){const el=$('mediaList');el.replaceChildren();if(!state.media.length){el.textContent='Your footage collection will appear here.';return}
- for(const m of state.media){const chip=document.createElement('div');chip.className='media-chip';const ico=document.createElement('b');ico.textContent=m.kind==='video'?'▣':'▤';const name=document.createElement('span');name.textContent=m.name;name.title=m.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove '+m.name;remove.setAttribute('aria-label','Remove '+m.name);remove.addEventListener('click',()=>{stopPreview();if(m.kind==='video')m.el.pause();URL.revokeObjectURL(m.url);state.media=state.media.filter(x=>x.id!==m.id);updateMediaList();if(state.media.length&&state.audioBuffer)createPlan(false);else{state.plan=null;clearEdit();} });chip.append(ico,name,remove);el.append(chip);}
+ for(const m of state.media){const chip=document.createElement('div');chip.className='media-chip';const ico=document.createElement('b');ico.textContent=m.kind==='video'?'▣':'▤';const name=document.createElement('span');name.textContent=m.name;name.title=m.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove '+m.name;remove.setAttribute('aria-label','Remove '+m.name);remove.addEventListener('click',()=>{stopPreview();if(m.kind==='video'){m.el.pause();const f=m.el.__galaxiaFrame;if(f?.handle&&m.el.cancelVideoFrameCallback)m.el.cancelVideoFrameCallback(f.handle);}
+ URL.revokeObjectURL(m.url);state.media=state.media.filter(x=>x.id!==m.id);updateMediaList();if(state.media.length&&state.audioBuffer)createPlan(false);else{state.plan=null;clearEdit();} });chip.append(ico,name,remove);el.append(chip);}
 }
 function chooseStyle(name) {
   if (!PRESETS[name]) return;
@@ -86,7 +122,12 @@ function variationOptions(){
   return {
     variation:Number($('variation').value)/100,
     avoidRepeats:$('avoidRepeats').checked,
-    dynamics:$('dynamics').checked
+    dynamics:$('dynamics').checked,
+    mixStyles:$('mixStyles').checked,
+    shuffleFx:$('shuffleFx').checked,
+    shuffleMotion:$('shuffleMotion').checked,
+    shuffleTransitions:$('shuffleTransitions').checked,
+    doubleFx:$('doubleFx').checked
   };
 }
 function updateVariation(){
@@ -137,6 +178,8 @@ function updateTimeline() {
     const options=document.createElement('div');options.className='scene-controls';
     options.append(
       makeChoice('FX',EFFECTS.map(v=>({value:v,label:v})),seg.effect,value=>{seg.effect=value;renderFrame(state.position)}),
+      makeChoice('Combo', [{value:'none',label:'No second FX'},...EFFECTS.map(v=>({value:v,label:v}))],seg.secondaryEffect||'none',
+        value=>{seg.secondaryEffect=value==='none'?null:value;renderFrame(state.position)}),
       makeChoice('Motion',MOTIONS.map(v=>({value:v,label:v})),seg.motion||'static',value=>{seg.motion=value;renderFrame(state.position)}),
       makeChoice('Cut',TRANSITIONS.map(v=>({value:v,label:v})),seg.transition||'cut',value=>{seg.transition=value;renderFrame(state.position)}),
       makeChoice('Speed',[.5,.75,.85,1,1.2,1.35,1.6,2].map(v=>({value:String(v),label:v+'×'})),String(seg.speed||1),value=>{seg.speed=Number(value);renderFrame(state.position)})
