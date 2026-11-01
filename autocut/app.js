@@ -145,7 +145,18 @@ function drawWave(){const w=wave.width,h=wave.height;waveCtx.clearRect(0,0,w,h);
  drawWaveHead();
 }
 function drawWaveHead(){if(!state.analysis)return;const x=state.position/state.analysis.duration*wave.width;waveCtx.strokeStyle='#fff';waveCtx.lineWidth=2;waveCtx.beginPath();waveCtx.moveTo(x,0);waveCtx.lineTo(x,wave.height);waveCtx.stroke();}
-function seek(t){const d=duration();state.position=clamp(t,0,d);if(state.analysis){audio.currentTime=Math.min(Math.max(0,((state.position%state.analysis.duration)+state.analysis.duration)%state.analysis.duration),state.analysis.duration-.02)}if(state.playing)state.playStart=performance.now()-state.position*1000;renderFrame(state.position);updateTransport();}
+function seek(t){
+ const d=duration();state.position=clamp(t,0,d);
+ // An intentional seek is not ordinary drift: resync the visible video immediately.
+ state.activeShot=null;
+ for(const m of state.media)if(m.kind==='video'){m.shotKey=null;m.lastSeek=-Infinity;}
+ if(state.analysis){
+   const track=state.analysis.duration;
+   audio.currentTime=clamp(((state.position%track)+track)%track,0,Math.max(0,track-.02));
+ }
+ if(state.playing)state.playStart=performance.now()-state.position*1000;
+ renderFrame(state.position);updateTransport();
+}
 function updateTransport(){const d=duration();$('previewSeek').value=d?String(Math.round(1000*state.position/d)):'0';$('currentTime').textContent=fmt(state.position)}
 function sceneMedia(id){return state.media.find(x=>x.id===id)}
 function chooseScene(id){state.selectedId=id;document.querySelectorAll('.shot').forEach(x=>x.classList.toggle('active',x.dataset.id===id));document.querySelectorAll('.scene-row').forEach(x=>x.style.borderColor=x.dataset.id===id?'#b986db':'#32273e')}
