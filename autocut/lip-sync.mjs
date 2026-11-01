@@ -3,7 +3,8 @@
    MediaPipe model is downloaded only after user enables this toggle. */
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const MODEL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
-const VISION='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
+const VISION='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs';
+const VISION_FALLBACK='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
 const WASM='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm';
 export function mouthEnergy(audioAnalysis,seconds){
   if(!audioAnalysis?.amplitude?.length||!audioAnalysis.fps)return 0;
@@ -63,8 +64,13 @@ export class LipMotion {
   if(this.loading)return this.loading;
   this.status='Loading optional face landmarks…';onStatus(this.status);
   this.loading=(async()=>{
-   const lib=await import(VISION);
+   let lib;
+   try{lib=await import(VISION)}catch(err){
+    try{lib=await import(VISION_FALLBACK)}
+    catch(fallback){throw Error('Face tracker download failed. Check internet access. '+String(fallback.message||fallback).slice(0,100))}
+   }
    const {FaceLandmarker,FilesetResolver}=lib;
+   if(!FaceLandmarker||!FilesetResolver)throw Error('Face tracking library did not supply the necessary components.');
    const vision=await FilesetResolver.forVisionTasks(WASM);
    this.model=await FaceLandmarker.createFromOptions(vision,{
     baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},
@@ -94,7 +100,9 @@ export class LipMotion {
   this.lastDetection=clock;
   try{
    const w=canvas.width,h=canvas.height;
-   this.scan.width=256;this.scan.height=Math.max(96,Math.round(256*h/w));
+   const targetWidth=256,targetHeight=Math.max(96,Math.min(400,Math.round(256*h/w)));
+   if(this.scan.width!==targetWidth)this.scan.width=targetWidth;
+   if(this.scan.height!==targetHeight)this.scan.height=targetHeight;
    const c=this.scan.getContext('2d',{willReadFrequently:true});
    c.drawImage(canvas,0,0,this.scan.width,this.scan.height);
    const result=this.model.detect(this.scan);
@@ -110,9 +118,9 @@ export class LipMotion {
    this.face=null;this.status='Face tracking paused: '+String(error.message||error);
   }
  }
- apply(ctx,canvas,analysis,time,{strength=.45,mode='auto',enabled=true,now=performance.now()}={}){
+ apply(ctx,canvas,analysis,time,{strength=.45,mode='auto',enabled=true,now=performance.now(),detectFrame=true}={}){
   if(!enabled||!this.ready)return false;
-  this.detect(canvas,now,mode);
+  if(detectFrame)this.detect(canvas,now,mode);
   if(!this.face)return false;
   const envelope=mouthEnergy(analysis,time);
   const wordHint=timedMouthEnergy(this.lyricCues,time);
@@ -131,7 +139,7 @@ export class LipMotion {
   const cx=x+w/2,cy=y+h/2;
   ctx.beginPath();ctx.ellipse(cx,cy,w*.52,h*.52,0,0,Math.PI*2);ctx.clip();
   ctx.translate(cx,cy);
-  const expansion=1+extent*.55;
+  const expansion=1+extent*1.1;
   ctx.scale(1,expansion);
   ctx.drawImage(patch,-w/2,-h/2,w,h);
   ctx.restore();
