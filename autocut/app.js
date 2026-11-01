@@ -7,7 +7,7 @@ const $=(id)=>document.getElementById(id);
 const q=(selector)=>document.querySelector(selector);
 const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[],style:'Bass Impact',
  seed:0,plan:null,selectedId:null,playing:false,position:0,playStart:0,rendering:false,raf:0,
- lastMediaId:null,activeShot:null,lastPaintAt:0,previewLooped:false,frameAge:0,
+ lastMediaId:null,activeShot:null,lastPaintAt:0,previewLooped:false,frameAge:0,hasGoodFrame:false,videoWarningAt:0,
  lastDrift:0,mediaSummary:null,videoSummary:null,generatedBrief:null,
  lip:new LipMotion(),lipAlertAt:0,scanBusy:false};
 const audio=new Audio();
@@ -16,6 +16,24 @@ audio.volume=1;
 const canvas=$('previewCanvas'),ctx=canvas.getContext('2d',{alpha:false});
 const wave=$('waveform'),waveCtx=wave.getContext('2d');
 const styleButtons=()=>[...document.querySelectorAll('[data-style]')];
+// Keep local video elements mounted: off-DOM videos fail to decode in some mobile browsers.
+const videoRack=document.createElement('div');
+videoRack.id='autocut-decoder-rack';
+videoRack.setAttribute('aria-hidden','true');
+videoRack.style.cssText='position:fixed;left:-10000px;top:0;width:2px;height:2px;overflow:hidden;pointer-events:none;opacity:.01;z-index:-1';
+document.body.append(videoRack);
+function videoFrameReady(media){
+ return media?.kind!=='video' || (media.el?.readyState>=2 && media.el.videoWidth>0 && media.el.videoHeight>0);
+}
+function showFrameLoading(){
+ if(state.hasGoodFrame)return; // Keep the previous decoded picture instead of flashing blank.
+ defaultCanvas();
+ ctx.fillStyle='#e5caed';
+ ctx.font='600 '+Math.max(13,Math.round(canvas.width*.025))+'px system-ui';
+ ctx.textAlign='center';
+ ctx.fillText('Preparing video frame…',canvas.width/2,canvas.height*.64);
+}
+
 const defaultCanvas=()=>{const g=ctx.createLinearGradient(0,0,canvas.width,canvas.height);g.addColorStop(0,'#3b224b');g.addColorStop(.6,'#1c152d');g.addColorStop(1,'#0c0a16');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#ead4f7';ctx.textAlign='center';ctx.font='700 '+Math.round(canvas.width*.08)+'px sans-serif';ctx.fillText('✦',canvas.width/2,canvas.height/2);};
 function status(message,kind=''){const el=$('status');el.textContent=message;el.className='status '+kind}
 function duration(){const master=state.analysis?.duration||0;if(!master)return 0;return $('durationLock').checked?master:clamp(Number($('customDuration').value)||master,.5,Math.max(3600,master*2))}
@@ -67,7 +85,19 @@ async function addMedia(files){if(!files?.length)return;state.generatedBrief=nul
    const url=URL.createObjectURL(file);
    try{let el,kind,duration=0;
     if(file.type.startsWith('image/')){el=await getImage(url);kind='image';}
-    else{el=document.createElement('video');el.src=url;el.muted=true;el.playsInline=true;el.preload='auto';await readMetadata(el,'loadedmetadata');duration=el.duration;kind='video';if(!Number.isFinite(duration)||duration<=0)throw Error('No video duration');}
+    else{
+      el=document.createElement('video');
+      el.muted=true;el.defaultMuted=true;el.playsInline=true;
+      el.setAttribute('playsinline','');el.setAttribute('webkit-playsinline','');
+      el.preload='auto';el.loop=true;el.controls=false;
+      el.style.cssText='width:2px;height:2px;display:block';
+      videoRack.append(el);
+      el.src=url;el.load();
+      await readMetadata(el,'loadedmetadata');
+      duration=el.duration;kind='video';
+      if(!Number.isFinite(duration)||duration<=0)throw Error('No video duration');
+      if(el.readyState<2)try{el.currentTime=Math.min(.05,Math.max(.005,duration*.01))}catch{}
+     }
     const id='m'+Date.now()+'_'+Math.random().toString(36).slice(2);
     if(kind==='video'){
       el.playsInline=true;el.loop=true;el.muted=true;
@@ -81,16 +111,29 @@ async function addMedia(files){if(!files?.length)return;state.generatedBrief=nul
       if(el.requestVideoFrameCallback)frame.handle=el.requestVideoFrameCallback(follow);
       el.__galaxiaFrame=frame;
     }
-    state.media.push({id,name:file.name,kind,el,url,duration,lastSeek:-Infinity,shotKey:null,pendingSeek:false});
+    const entry={id,name:file.name,kind,el,url,duration,lastSeek:-Infinity,shotKey:null,pendingSeek:false};
+    state.media.push(entry);
+    if(kind==='video'){
+      const refresh=()=>{
+        if(!state.playing&&!state.rendering&&state.plan&&state.media.includes(entry))
+          requestAnimationFrame(()=>{if(state.media.includes(entry))renderFrame(state.position)});
+      };
+      el.addEventListener('loadeddata',refresh);
+      el.addEventListener('seeked',refresh);
+      el.addEventListener('error',()=>{
+        if(state.media.includes(entry))
+          status('Video cannot decode '+entry.name+'. Try H.264 MP4 or browser-compatible WebM.','error');
+      });
+    }
     added++;
-   }catch(e){failed++;URL.revokeObjectURL(url);console.warn('Skipped media',file.name,e)}
+   }catch(e){failed++;if(el?.tagName==='VIDEO'){el.pause();el.removeAttribute('src');el.load();el.remove()}URL.revokeObjectURL(url);console.warn('Skipped media',file.name,e)}
  }
  updateMediaList();if(state.audioBuffer&&state.media.length)createPlan(false);
  status(added+' file(s) loaded'+(failed?' · '+failed+' unsupported or unreadable file(s)':'')+'.',failed?'error':'ok');
 }
 function updateMediaList(){const el=$('mediaList');el.replaceChildren();if(!state.media.length){el.textContent='Your footage collection will appear here.';return}
  for(const m of state.media){const chip=document.createElement('div');chip.className='media-chip';const ico=document.createElement('b');ico.textContent=m.kind==='video'?'▣':'▤';const name=document.createElement('span');name.textContent=m.name;name.title=m.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove '+m.name;remove.setAttribute('aria-label','Remove '+m.name);remove.addEventListener('click',()=>{stopPreview();if(m.kind==='video'){m.el.pause();const f=m.el.__galaxiaFrame;if(f?.handle&&m.el.cancelVideoFrameCallback)m.el.cancelVideoFrameCallback(f.handle);}
- URL.revokeObjectURL(m.url);state.media=state.media.filter(x=>x.id!==m.id);updateMediaList();if(state.media.length&&state.audioBuffer)createPlan(false);else{state.plan=null;clearEdit();} });chip.append(ico,name,remove);el.append(chip);}
+ if(m.kind==='video'){m.el.pause();m.el.removeAttribute('src');m.el.load();m.el.remove()}URL.revokeObjectURL(m.url);state.media=state.media.filter(x=>x.id!==m.id);updateMediaList();if(state.media.length&&state.audioBuffer)createPlan(false);else{state.plan=null;clearEdit();} });chip.append(ico,name,remove);el.append(chip);}
 }
 function chooseStyle(name) {
   if (!PRESETS[name]) return;
@@ -226,6 +269,7 @@ function createPlan(randomize=true) {
   if(!state.audioBuffer){status('Load a soundtrack first.','error');return}
   if(!state.media.length){status('Add at least one video or image first.','error');return}
   stopPreview();
+  state.hasGoodFrame=false;
   if(randomize)state.seed++;
   const instructions=$('directorPrompt').value.trim();
   const director=parseDirection(instructions,state.style);
@@ -280,7 +324,13 @@ function setVideoMedia(media,target,shot,isForeground=true){
  }
  if(Math.abs(el.playbackRate-decision.rate)>.02)el.playbackRate=decision.rate;
  if(state.playing||state.rendering){
-   if(el.paused)el.play().catch(()=>{});
+   if(el.paused)el.play().catch(e=>{
+      const now=performance.now();
+      if(now-state.videoWarningAt>4000){
+       state.videoWarningAt=now;
+       status('Video playback blocked or codec unsupported: '+(e.message||'try MP4 H.264')+'.','error');
+      }
+    });
  }else if(!el.paused)el.pause();
 }
 function drawSource(media,segment,time,alpha=1,foreground=true){
@@ -290,17 +340,24 @@ function drawSource(media,segment,time,alpha=1,foreground=true){
    const offset=Number($('videoOffset').value)||0;
    const target=videoDelayTarget(segment.sourceOffset,elapsed,segment.speed,offset);
    setVideoMedia(media,target,segment,foreground);
-   if(media.el.readyState<2)return;
+   if(!videoFrameReady(media))return;
  }
  drawShot(ctx,canvas,media,segment,time,alpha);
 }
 function renderFrame(time){
  const w=canvas.width,h=canvas.height;
- ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);
  const segment=state.plan&&findSegment(state.plan.segments,clamp(time,0,Math.max(0,state.plan.duration-.00001)));
- if(!segment){defaultCanvas();return}
+ if(!segment){defaultCanvas();state.hasGoodFrame=false;return}
  const media=sceneMedia(segment.mediaId);
- if(!media){defaultCanvas();return}
+ if(!media){defaultCanvas();state.hasGoodFrame=false;return}
+ if(!videoFrameReady(media)){
+   const elapsed=Math.max(0,time-segment.start);
+   const target=videoDelayTarget(segment.sourceOffset,elapsed,segment.speed,Number($('videoOffset').value)||0);
+   setVideoMedia(media,target,segment,true);
+   showFrameLoading();
+   return;
+ }
+ ctx.fillStyle='#130f1b';ctx.fillRect(0,0,w,h);
  if(state.lastMediaId&&state.lastMediaId!==media.id){
    const previousMedia=sceneMedia(state.lastMediaId);
    if(previousMedia?.kind==='video')previousMedia.el.pause();
@@ -310,7 +367,7 @@ function renderFrame(time){
  const previous=index>0?state.plan.segments[index-1]:null;
  const oldMedia=previous&&sceneMedia(previous.mediaId);
  const cut=segment.transition,progress=1-opacity;
- if(opacity>0&&oldMedia&&oldMedia.id!==media.id){
+ if(opacity>0&&oldMedia&&oldMedia.id!==media.id&&videoFrameReady(oldMedia)){
    drawSource(oldMedia,previous,Math.max(previous.start,previous.end-.04),1,false);
    if(cut==='wipe'){
      ctx.save();ctx.beginPath();ctx.rect(0,0,w*progress,h);ctx.clip();
@@ -332,6 +389,7 @@ function renderFrame(time){
    drawTreatment(ctx,canvas,{...segment,effect:segment.secondaryEffect,intensity:(segment.intensity||.7)*.5},time,$('safeFlash').checked);
  }
  drawCutOverlay(ctx,canvas,segment,time,$('safeFlash').checked);
+ state.hasGoodFrame=true;
  if($('lipSyncToggle').checked && state.lip.ready && media.kind==='video'){
    state.lip.apply(ctx,canvas,state.analysis,time,{
       strength:Number($('lipStrength').value)/100,
@@ -389,7 +447,14 @@ async function togglePreview(){
  try{
    audio.loop=!$('durationLock').checked;
    audio.currentTime=clamp(state.position%(state.analysis?.duration||d),0,Math.max(0,(state.analysis?.duration||d)-.02));
+   // Request both audio and muted footage playback synchronously from a tap.
+   const firstShot=findSegment(state.plan.segments,clamp(state.position,0,Math.max(0,state.plan.duration-.00001)));
+   const firstMedia=firstShot&&sceneMedia(firstShot.mediaId);
+   const videoStart=firstMedia?.kind==='video'&&firstMedia.el.paused
+      ? firstMedia.el.play().catch(e=>status('Video playback blocked: '+e.message,'error'))
+      : Promise.resolve();
    await audio.play();
+   await videoStart;
    state.playStart=performance.now()-state.position*1000;
    state.playing=true;state.lastPaintAt=0;
    $('previewPlay').textContent='Ⅱ';state.raf=requestAnimationFrame(tick);
@@ -660,6 +725,7 @@ window.addEventListener('beforeunload',()=>{
  for(const media of state.media){
   if(media.kind==='video'&&media.el.cancelVideoFrameCallback&&media.el.__galaxiaFrame?.handle)
     media.el.cancelVideoFrameCallback(media.el.__galaxiaFrame.handle);
+  if(media.kind==='video'){media.el.pause();media.el.removeAttribute('src');media.el.load();media.el.remove()}
   URL.revokeObjectURL(media.url);
  }
  state.lip.destroy();
