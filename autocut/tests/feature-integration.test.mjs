@@ -39,6 +39,11 @@ test('lip animation is disabled by default, loaded lazily and explicitly approxi
  assert.ok(html.includes('id="lipSyncToggle" type="checkbox"'));
  assert.ok(!html.includes('id="lipSyncToggle" type="checkbox" checked'));
  assert.ok(lip.includes('await import(VISION)'));
+ assert.ok(lip.includes('VISION_FALLBACK'));
+ assert.ok(lip.includes('detectFrame=true'));
+ assert.ok(app.includes("if($('lipSyncToggle').checked)void activateLipMotion()"));
+ assert.ok(app.includes('state.lip.detect(canvas,performance.now()'));
+ assert.ok(html.includes('role="status" aria-live="polite"'));
  assert.ok(html.includes('NOT true word/phoneme accuracy'));
  assert.ok(app.includes('state.lip.apply('));
 });
