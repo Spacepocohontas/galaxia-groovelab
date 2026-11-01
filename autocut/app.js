@@ -47,7 +47,8 @@ async function loadAudio(file){if(!file)return;stopPreview();status('Decoding so
   audio.src=state.audioUrl;audio.load();
   const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
   try{state.audioBuffer=await audioCtx.decodeAudioData(await file.arrayBuffer());}finally{await audioCtx.close()}
-  state.audioFile=file;
+  state.audioFile=file;state.generatedBrief=null;state.mediaSummary=null;
+  $('generatedMVPrompt').value='';$('copyMVPrompt').disabled=true;$('applyMVPrompt').disabled=true;
   state.analysis=summarizeAudio(Array.from({length:Math.min(2,state.audioBuffer.numberOfChannels)},(_,i)=>state.audioBuffer.getChannelData(i)),state.audioBuffer.sampleRate);
   $('trackTitle').textContent=file.name;$('trackInfo').textContent=state.analysis.confidence==='low'?'Quiet or complex track · tempo is approximate':'Audio analyzed · '+state.analysis.confidence+' BPM';
   $('trackLength').textContent=fmt(state.analysis.duration);
@@ -59,7 +60,8 @@ async function loadAudio(file){if(!file)return;stopPreview();status('Decoding so
  }catch(err){state.audioBuffer=null;state.analysis=null;state.audioFile=null;status('Audio load failed: '+err.message,'error')}
 }
 function getImage(url){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Image cannot be decoded'));image.src=url})}
-async function addMedia(files){if(!files?.length)return;status('Loading '+files.length+' media file(s)…');let added=0,failed=0;
+async function addMedia(files){if(!files?.length)return;state.generatedBrief=null;state.mediaSummary=null;
+ $('generatedMVPrompt').value='';$('copyMVPrompt').disabled=true;$('applyMVPrompt').disabled=true;status('Loading '+files.length+' media file(s)…');let added=0,failed=0;
  for(const file of files){
    if(!file.type.startsWith('video/')&&!file.type.startsWith('image/')){failed++;continue}
    const url=URL.createObjectURL(file);
