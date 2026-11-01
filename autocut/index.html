@@ -121,10 +121,10 @@
       <p class="preview-hint">Original song audio remains the master clock. Preview draws frames at an adaptive rate; export keeps its own quality setting.</p>
      </section>
      <section class="panel lip-panel"><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
-       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Face-tracked visual dubbing; optional LRC-timed lyrics · NOT true word/phoneme accuracy</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
+       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Approximate on-device mouth motion, not automatic speech dubbing or precise phoneme alignment.</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
        <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
        <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">
-       <p id="lipStatus" class="lip-status">Off. When enabled, a face-landmark model downloads once; footage stays on your device. This may lower FPS on slower devices.</p>
+       <p id="lipStatus" class="lip-status" role="status" aria-live="polite">Off · Enable face tracking. Add a soundtrack and video with a visible face.</p>
      </section>
      <section class="panel lock-panel"><div class="panel-heading"><div><span class="section-number">04</span><h2>Timeline rules</h2></div></div>
       <div class="lock-control"><div class="lock-icon">♙</div><div><b>Lock audio duration</b><small>Always match the uploaded song's full running time.</small></div><label class="switch"><input id="durationLock" type="checkbox" checked><span class="slider"></span><span class="sr-only">Lock audio duration</span></label></div>
