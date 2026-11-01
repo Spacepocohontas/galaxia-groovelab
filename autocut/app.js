@@ -83,7 +83,8 @@ async function addMedia(files){if(!files?.length)return;state.generatedBrief=nul
  for(const file of files){
    if(!file.type.startsWith('video/')&&!file.type.startsWith('image/')){failed++;continue}
    const url=URL.createObjectURL(file);
-   try{let el,kind,duration=0;
+   let el;
+   try{let kind,duration=0;
     if(file.type.startsWith('image/')){el=await getImage(url);kind='image';}
     else{
       el=document.createElement('video');
