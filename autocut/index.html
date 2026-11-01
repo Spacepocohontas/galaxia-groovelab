@@ -74,7 +74,7 @@
       <div class="smart-director">
         <div class="smart-header"><span class="smart-star">✦</span><div><b>Analyze soundtrack + footage</b><small>On-device color/motion & music-energy inspection. Add lyrics for song meaning. Doesn't guess words.</small></div></div>
         <label for="lyricsInput" class="field-label">SONG LYRICS / STORY (OPTIONAL)</label>
-        <textarea id="lyricsInput" rows="3" placeholder="Paste song lyrics or describe what the song is about. Audio energy alone cannot reveal exact lyrics."></textarea>
+        <textarea id="lyricsInput" rows="3" placeholder="Paste lyrics/story here. Optional timestamped LRC: [00:12.50] I hear your voice. Audio alone cannot identify words."></textarea>
         <div class="analysis-actions">
           <button id="analyzeBtn" type="button" class="btn smart-primary">✦ Analyze & create MV prompt</button>
           <button id="copyMVPrompt" type="button" class="btn subtle" disabled>Copy MV brief</button>
@@ -121,7 +121,7 @@
       <p class="preview-hint">Original song audio remains the master clock. Preview draws frames at an adaptive rate; export keeps its own quality setting.</p>
      </section>
      <section class="panel lip-panel"><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
-       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Face-tracked, audio-reactive visual dubbing · not exact word/phoneme lip-sync</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
+       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Face-tracked visual dubbing; optional LRC-timed lyrics · NOT true word/phoneme accuracy</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
        <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
        <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">
        <p id="lipStatus" class="lip-status">Off. When enabled, a face-landmark model downloads once; footage stays on your device. This may lower FPS on slower devices.</p>
