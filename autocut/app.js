@@ -130,7 +130,7 @@ async function addMedia(files){if(!files?.length)return;state.generatedBrief=nul
    }catch(e){failed++;if(el?.tagName==='VIDEO'){el.pause();el.removeAttribute('src');el.load();el.remove()}URL.revokeObjectURL(url);console.warn('Skipped media',file.name,e)}
  }
  updateMediaList();if(state.audioBuffer&&state.media.length)createPlan(false);
- status(added+' file(s) loaded'+(failed?' · '+failed+' unsupported or unreadable file(s)':'')+'.',failed?'error':'ok');
+ status(added+' file(s) loaded'+(failed?' · '+failed+' unsupported or unreadable. Convert source footage to H.264 MP4 (AAC audio) or WebM and re-import':'')+'.',failed?'error':'ok');
 }
 function updateMediaList(){const el=$('mediaList');el.replaceChildren();if(!state.media.length){el.textContent='Your footage collection will appear here.';return}
  for(const m of state.media){const chip=document.createElement('div');chip.className='media-chip';const ico=document.createElement('b');ico.textContent=m.kind==='video'?'▣':'▤';const name=document.createElement('span');name.textContent=m.name;name.title=m.name;const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove '+m.name;remove.setAttribute('aria-label','Remove '+m.name);remove.addEventListener('click',()=>{stopPreview();if(m.kind==='video'){m.el.pause();const f=m.el.__galaxiaFrame;if(f?.handle&&m.el.cancelVideoFrameCallback)m.el.cancelVideoFrameCallback(f.handle);}
@@ -455,7 +455,8 @@ async function togglePreview(){
       ? firstMedia.el.play().catch(e=>status('Video playback blocked: '+e.message,'error'))
       : Promise.resolve();
    await audio.play();
-   await videoStart;
+   // A slow video decoder must not prevent the soundtrack or edit clock from starting.
+   void videoStart;
    state.playStart=performance.now()-state.position*1000;
    state.playing=true;state.lastPaintAt=0;
    $('previewPlay').textContent='Ⅱ';state.raf=requestAnimationFrame(tick);
