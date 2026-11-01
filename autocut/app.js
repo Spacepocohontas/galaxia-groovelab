@@ -20,8 +20,8 @@ const styleButtons=()=>[...document.querySelectorAll('[data-style]')];
 const videoRack=document.createElement('div');
 videoRack.id='autocut-decoder-rack';
 videoRack.setAttribute('aria-hidden','true');
-videoRack.style.cssText='position:fixed;left:-10000px;top:0;width:2px;height:2px;overflow:hidden;pointer-events:none;opacity:.01;z-index:-1';
-document.body.append(videoRack);
+videoRack.style.cssText='position:absolute;left:0;bottom:0;width:3px;height:3px;overflow:hidden;pointer-events:none;opacity:.01;z-index:0';
+$('previewFrame').prepend(videoRack);
 function videoFrameReady(media){
  return media?.kind!=='video' || (media.el?.readyState>=2 && media.el.videoWidth>0 && media.el.videoHeight>0);
 }
