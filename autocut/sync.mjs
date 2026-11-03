@@ -8,9 +8,9 @@ export function wrappedDrift(actual,desired,duration) {
 export function syncDecision({actual,desired,duration,speed=1,now=0,lastSeek=-Infinity,newClip=false,mode='auto'}){
   const nominal=clamp(Number(speed)||1,.5,2);
   const drift=wrappedDrift(actual,desired,duration);
-  const threshold=mode==='smooth'?.62:mode==='quality'?.36:.48;
+  const threshold=mode==='smooth'?1.0:mode==='quality'?.36:.48;
   const tolerance=mode==='smooth'?.105:.070;
-  const minInterval=mode==='smooth'?1150:850;
+  const minInterval=mode==='smooth'?1700:850;
   if(newClip||(!Number.isFinite(actual))|| (Math.abs(drift)>threshold&&now-lastSeek>minInterval))
     return {seek:true,rate:nominal,drift};
   if(Math.abs(drift)<tolerance)return {seek:false,rate:nominal,drift};
