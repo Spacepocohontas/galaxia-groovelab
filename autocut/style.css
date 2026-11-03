@@ -116,3 +116,38 @@
 .preview-frame.fullscreen-fallback{position:fixed!important;inset:0!important;z-index:800}
 @media(max-width:780px){.smart-director{padding:12px}.tiny-top{font-size:9px!important}.perf-settings{grid-template-columns:1fr 1fr}.smart-header b{font-size:12px}}
 @media(max-width:490px){.perf-settings{grid-template-columns:1fr}.analysis-actions .btn{flex:1 1 100px}.top-actions .local-dot,.top-actions .local-text{display:none}.preview-actions{gap:3px}.preview-pill{font-size:8px}.small-full{font-size:9px!important}}
+
+
+/* Genuine lip-sync workflow; the previous mouth-warp panel is deliberately hidden. */
+.real-lip-panel{background:linear-gradient(145deg,#23172e,#151522);border:1px solid #66447a}
+.real-lip-callout{display:flex;gap:13px;align-items:flex-start;border:1px solid #7d4b93;background:#392545;padding:14px;border-radius:11px;margin-bottom:15px}
+.real-lip-callout b{color:#f0cafb;font:700 13px 'Space Grotesk',sans-serif}
+.real-lip-callout p{font-size:10px;line-height:1.65;color:#c2a9cd;margin:6px 0 0}
+.real-lip-icon{width:35px;height:35px;background:#80518d;border-radius:9px;display:grid;place-items:center;flex-shrink:0;font-size:22px}
+.real-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;color:#f3d1f7;line-height:1.5}
+.real-check input[type=checkbox]{accent-color:#bb88d3;margin:3px 0 0;flex-shrink:0;width:17px;height:17px}
+.real-check small{display:block;font-size:10px;line-height:1.6;color:#b39bbc;margin-top:4px}
+#realLipDetails{padding-top:14px}
+.real-lip-meta{background:#201a2b;border:1px solid #553e67;border-radius:10px;padding:12px;margin-bottom:12px}
+.real-lip-meta strong{font-size:11px;color:#e8baf5}
+.real-lip-meta p{font-size:10px;color:#ad9cb9;line-height:1.6;margin:7px 0 0}
+.real-lip-quick{background:#271d34;border-radius:9px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.real-lip-quick .btn{width:100%}
+.real-lip-quick small{color:#a996b7;font-size:10px;line-height:1.6}
+.real-lip-advanced{background:#191421;border:1px solid #4f3c5a;border-radius:10px;margin-top:14px;padding:13px}
+.real-lip-advanced summary{font-weight:800;color:#dcafef;font-size:11px;cursor:pointer;line-height:1.5}
+.real-lip-advanced>p,.real-lip-output p{font-size:10px;color:#a994b5;line-height:1.65;margin:12px 0}
+.real-field{display:block;color:#c4a4d0;font-size:9px;font-weight:800;letter-spacing:.7px;margin:12px 0}
+.real-field input,.real-field select{display:block;width:100%;min-width:0;background:#0f0d19;border:1px solid #594367;color:#f2e0f7;border-radius:8px;padding:11px 9px;margin-top:7px;font-size:11px;letter-spacing:0}
+.real-text-button{background:transparent;border:0;color:#dda9e9;text-decoration:underline;font-size:10px;margin:-4px 0 8px;padding:5px 0}
+.real-lip-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.real-lip-steps{margin-top:15px;border-top:1px solid #3f3150;padding-top:12px}
+.real-lip-steps .btn{width:100%;margin:9px 0}
+.real-lip-steps p,.real-lip-steps #realLipPrice{font-size:10px;line-height:1.7;color:#c7afcf;margin:10px 0}
+.real-lip-steps #realLipConfirm{width:16px;height:16px}
+#realLipProgress{width:100%;height:8px;accent-color:#cf91e8}
+.real-error{color:#ffaaa7!important}
+#realLipOutput{border-top:1px solid #4c3959;margin-top:15px;padding-top:14px}
+.real-lip-output-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.real-lip-output-buttons .btn{flex:1;min-width:125px}
+@media(max-width:550px){.real-lip-grid{grid-template-columns:1fr}.real-lip-output-buttons{flex-direction:column}.real-lip-callout b{font-size:12px}}

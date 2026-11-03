@@ -120,7 +120,54 @@
       </div>
       <p class="preview-hint">Original song audio remains the master clock. Preview draws frames at an adaptive rate; export keeps its own quality setting.</p>
      </section>
-     <section class="panel lip-panel"><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
+     <section class="panel real-lip-panel">
+      <div class="panel-heading"><div><span class="section-number">REAL AI</span><h2>Natural singing lip-sync</h2></div><span class="info-chip">GENERATIVE VIDEO</span></div>
+      <div class="real-lip-callout"><span class="real-lip-icon">🎤</span><div><b>Actual words, actual mouth shapes — no magnifying lips.</b>
+      <p>Generative lip-sync makes new mouth movements from a recording of a singer or character and the real vocal audio. Paste lyrics for direction, but audio supplies the pronunciation.</p></div></div>
+      <label class="real-check"><input id="realLipToggle" type="checkbox"><span>Enable real AI lip-sync workflow <small>OFF until you choose a clip. This sends chosen video and vocals to Sync Labs only when you explicitly start a generation.</small></span></label>
+      <div id="realLipDetails" hidden>
+        <div class="real-lip-meta">
+          <strong>3 free trial generations/month may be available through your Sync account</strong>
+          <p>Limits depend on your account and model. Free lipsync-2 generally supports up to 20s; sync-3 up to 15s. Longer work may cost credits. Song duration in AutoCut remains locked to your original soundtrack.</p>
+        </div>
+        <div class="real-lip-quick">
+          <a href="https://sync.so/try" target="_blank" rel="noopener noreferrer" class="btn primary">✦ Open Sync Studio · no API key</a>
+          <small>Upload a short face video + the same vocal audio there. Download the generated MP4, then add it back to AutoCut with <b>Add video &amp; images</b>. The music timeline stays unchanged.</small>
+        </div>
+        <details class="real-lip-advanced">
+          <summary>Advanced · generate directly in AutoCut using your own Sync API key</summary>
+          <p>This connects to a genuine AI lip-sync model, not the browser face-warper. Your API key is kept in this tab only, sent through a secure server-side proxy, never written to GitHub or saved on our server. Files upload directly to Sync Labs, not Vercel.</p>
+          <label class="real-field">SYNC LABS API KEY
+            <input type="password" id="realLipKey" autocomplete="off" spellcheck="false" placeholder="Paste key here (kept only in this tab)">
+          </label><button id="realLipClearKey" type="button" class="real-text-button">Disconnect key</button>
+          <div class="real-lip-grid">
+            <label class="real-field">SINGING VIDEO CLIP<select id="realLipVideo"><option value="">Choose uploaded footage…</option></select></label>
+            <label class="real-field">MODEL<select id="realLipModel"><option value="lipsync-2">lipsync-2 · natural talking motion · 20s free limit</option><option value="sync-3">sync-3 · handles silent lips · 15s free limit</option></select></label>
+            <label class="real-field">DRIVER AUDIO<select id="realLipDriver"><option value="song">Your uploaded song</option><option value="vocals">Separate vocals-only audio (recommended)</option></select></label>
+            <label class="real-field">VOCAL-ONLY FILE<input type="file" id="realLipVocals" accept="audio/*,.mp3,.wav,.m4a,.flac"></label>
+            <label class="real-field">SONG START (SECONDS)<input id="realLipStartAt" type="number" min="0" step=".1" value="0"></label>
+            <label class="real-field">EXCERPT LENGTH (SECONDS)<input id="realLipSeconds" type="number" min="1" max="20" step=".5" value="12"></label>
+          </div>
+          <div class="real-lip-steps">
+            <button id="realLipEstimate" type="button" class="btn subtle">1 · Check model cost/credits</button>
+            <p id="realLipPrice" role="status">Nothing is billed until you explicitly generate. Uploading your own face video and vocals sends those files to Sync Labs.</p>
+            <label class="real-check"><input id="realLipConfirm" type="checkbox"><span>I agree to upload these files and use any displayed provider credits/cost if I generate.</span></label>
+            <button id="realLipGo" type="button" class="btn primary" disabled>2 · Generate genuine AI lip-sync</button>
+            <progress id="realLipProgress" max="100" value="0" hidden></progress>
+            <p id="realLipStatus" role="status" aria-live="polite">Select your video and a 12-second vocal excerpt. Start with a short test.</p>
+          </div>
+          <div id="realLipOutput" hidden>
+            <video id="realLipVideoResult" playsinline controls preload="metadata" style="width:100%;max-height:320px;border-radius:10px"></video>
+            <div class="real-lip-output-buttons">
+              <a id="realLipDownload" href="#" target="_blank" rel="noopener noreferrer" class="btn primary">↓ Download natural lip-sync video</a>
+              <button id="realLipImport" type="button" class="btn subtle">↳ Import into AutoCut timeline</button>
+            </div>
+            <p>Use the processed clip as video footage with your original full-length song. Import may require downloading and re-adding if the provider blocks cross-origin access.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+    <section class="panel lip-panel" hidden><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
        <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Approximate on-device mouth motion, not automatic speech dubbing or precise phoneme alignment.</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
        <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
        <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">

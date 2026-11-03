@@ -3,6 +3,7 @@ import {drawShot,drawTreatment,drawCutOverlay,transitionMix} from './effects.mjs
 import {syncDecision,videoDelayTarget,drawIntervalFor,syncStatus} from './sync.mjs';
 import {analyzeSound,sampleFootage,suggestMusicVideo} from './director.mjs';
 import {LipMotion} from './lip-sync.mjs';
+import {setupRealLipSync} from './real-lipsync.mjs';
 const $=(id)=>document.getElementById(id);
 const q=(selector)=>document.querySelector(selector);
 const state={audioFile:null,audioUrl:null,audioBuffer:null,analysis:null,media:[],style:'Bass Impact',
@@ -117,7 +118,7 @@ async function addMedia(files){if(!files?.length)return;state.generatedBrief=nul
       if(el.requestVideoFrameCallback)frame.handle=el.requestVideoFrameCallback(follow);
       el.__galaxiaFrame=frame;
     }
-    const entry={id,name:file.name,kind,el,url,duration,lastSeek:-Infinity,shotKey:null,pendingSeek:false};
+    const entry={id,name:file.name,file,kind,el,url,duration,lastSeek:-Infinity,shotKey:null,pendingSeek:false};
     state.media.push(entry);
     if(kind==='video'){
       const refresh=()=>{
@@ -816,5 +817,12 @@ window.addEventListener('beforeunload',()=>{
  }
  state.lip.destroy();
  if(state.audioUrl)URL.revokeObjectURL(state.audioUrl);
+});
+setupRealLipSync({
+ getMedia:()=>state.media,
+ getAudioBuffer:()=>state.audioBuffer,
+ getAudioFile:()=>state.audioFile,
+ importMedia:async files=>await addMedia(files),
+ appStatus:status
 });
 resizeCanvas();drawWave();syncLengthsSafe();status('Ready when your clips are.');

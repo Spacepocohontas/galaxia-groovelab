@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "autocut/**"
+      - "api/lipsync.js"
       - ".github/workflows/autocut-ci.yml"
   pull_request:
     paths:
@@ -28,6 +29,8 @@ jobs:
           node --check autocut/director.mjs
           node --check autocut/sync.mjs
           node --check autocut/lip-sync.mjs
+          node --check autocut/real-lipsync.mjs
+          node --check api/lipsync.js
       - name: Validate beat engine
         run: npm test
         working-directory: autocut
