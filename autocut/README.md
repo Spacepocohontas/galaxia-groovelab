@@ -52,3 +52,29 @@ Use the **Full screen** header button for the studio or **Expand** next to the v
 
 ### Validation
 Run the existing Node tests; GitHub Actions also parses the new sync, local director and lip modules. These tests validate planning, settings wiring and source syntax, not real-world device decoder performance or every optional model/browser capability. Browser export can produce WebM or MP4 when its available MediaRecorder codecs support that format; final container runtime may differ by a few frames.
+
+
+## Natural AI singing lip-sync (replaces the old mouth-stretching experiment)
+
+The old MediaPipe mouth-warp UI is hidden and switched off by default because it just scales mouth pixels and does NOT generate realistic speech. AutoCut now has a separate **Natural singing lip-sync** feature with an explicit enable toggle.
+
+### Free no-API-key workflow
+Click **Open Sync Studio**. Upload a short video of a visible human/character face and an audio excerpt with singing, then use a supported generative Sync Labs model. After the render, download the MP4 and use AutoCut's **Add video & images** to bring the new clip into the existing soundtrack-locked music video timeline. This can use a connected Sync Studio account's free allowance if available. No Sync API key is needed for the Studio route, and AutoCut itself does not silently charge or upload anything.
+
+For natural results, a clean vocal-only recording usually works better than a full mix with drums and bass; lyrics are useful for creative planning, but *the recorded vocal audio drives the true lip sync*.
+
+### Optional in-app model generation (requires user-owned Sync API key)
+An Advanced panel exposes the provider's official API via a same-origin Vercel function in `api/lipsync.js`. The API key is supplied by the user, kept in sessionStorage for this tab only, and forwarded to Sync Labs without server storage. This is **bring your own key**; the public AutoCut site does not include an owner-funded API key or silently bill the owner for strangers' requests.
+
+Flow:
+1. Load an original soundtrack and an existing face video into AutoCut. Optionally choose a separate vocals-only audio file.
+2. Enable Natural singing lip-sync; pick the source video, model, start time and short audio excerpt (free trial caps vary: 20 s with lipsync-2, 15 s with sync-3).
+3. Click **Check model cost/credits**. The server calls the Sync Labs quote endpoint without generating anything.
+4. Explicitly acknowledge the displayed provider estimate and upload. Then click **Generate genuine AI lip-sync**.
+5. The browser creates a WAV of the selected audio excerpt, presigns a private direct upload to Sync Labs and registers both video and audio as assets. It then starts one idempotent generation using `sync_mode: loop` so output length follows audio rather than chopping off the end.
+6. Poll the generation ID (do not submit duplicate jobs). Preview/download the result and reimport to the full-length AutoCut timeline. Direct import is best-effort and can fail if the provider's signed output URL disallows browser cross-origin fetch.
+
+**Important:** The uploaded source visual is selected from the user's video library. Realistic singing requires a face with adequate resolution. Neither posted lyrics nor simple face landmarks alone can recreate the phoneme-specific lip movements. The paid model is a remote GPU service; using the full original multi-minute song may consume credits and may exceed free limits. The editor itself remains free to use.
+
+### Privacy and compatibility
+The no-key path opens Sync Studio in another tab. The advanced path uploads selected media directly to Sync Labs and sends requests through a Vercel API route with the user's temporary API key. The app never automatically starts provider generation. No provider key is embedded in source or shared globally. A browser may block presigned upload CORS or importing the result; use Sync Studio or download/reimport in that case. Existing Audio Duration Lock remains ON by default. Automated tests cover consent, estimate vs generation, input IDs, loop mode and key handling; an actual remote GPU generation requires user media, a connected/keyed account and explicit approval, so it cannot be verified by static CI alone.
