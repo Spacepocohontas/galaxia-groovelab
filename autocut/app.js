@@ -312,9 +312,14 @@ function setVideoMedia(media,target,shot,isForeground=true){
  const desired=(target%media.duration+media.duration)%media.duration;
  const entering=media.shotKey!==shot.id || state.activeShot!==shot.id;
  if(entering){media.shotKey=shot.id;state.activeShot=shot.id;}
+ // AutoCut previously forced a decoder seek at every beat cut, even when
+ // footage was already near the right time. That produces Safari stalls.
+ const diff=Math.abs(el.currentTime-desired);
+ const distance=Math.min(diff,Math.abs(media.duration-diff));
+ const needsNewPosition=entering&&(distance>.45||el.readyState<2);
  const decision=syncDecision({
    actual:el.currentTime,desired,duration:media.duration,speed,
-   now,lastSeek:media.lastSeek,newClip:entering,mode:$('performanceMode').value
+   now,lastSeek:media.lastSeek,newClip:needsNewPosition,mode:$('performanceMode').value
  });
  state.lastDrift=decision.drift;
  const frame=el.__galaxiaFrame;
@@ -350,7 +355,12 @@ function drawSource(media,segment,time,alpha=1,foreground=true){
    setVideoMedia(media,target,segment,foreground);
    if(!videoFrameReady(media))return;
  }
- drawShot(ctx,canvas,media,segment,time,alpha);
+ // On phones, preview the cut and timing with the native-looking source image.
+ // Heavy per-pixel FX remain enabled for export and for quality preview mode.
+ const lowLag=!state.rendering && matchMedia('(max-width:780px)').matches &&
+              $('performanceMode').value==='smooth';
+ const liveShot=lowLag?{...segment,effect:'natural',secondaryEffect:null,motion:'static',crop:1.04}:segment;
+ drawShot(ctx,canvas,media,liveShot,time,alpha);
 }
 function renderFrame(time){
  const w=canvas.width,h=canvas.height;
@@ -402,13 +412,15 @@ function renderFrame(time){
  if($('lipSyncToggle').checked&&state.lip.ready&&media.kind==='video'){
   state.lip.detect(canvas,performance.now(),$('performanceMode').value);
  }
- drawTreatment(ctx,canvas,segment,time,$('safeFlash').checked);
+ const reducedPreview=!state.rendering&&matchMedia('(max-width:780px)').matches&&
+                      $('performanceMode').value==='smooth';
+ if(!reducedPreview)drawTreatment(ctx,canvas,segment,time,$('safeFlash').checked);
  if(segment.secondaryEffect && segment.secondaryEffect!==segment.effect &&
    (state.rendering || !$('lipSyncToggle').checked || $('performanceMode').value==='quality')){
    // A second overlay treatment, not a second full-frame re-decode.
    drawTreatment(ctx,canvas,{...segment,effect:segment.secondaryEffect,intensity:(segment.intensity||.7)*.5},time,$('safeFlash').checked);
  }
- drawCutOverlay(ctx,canvas,segment,time,$('safeFlash').checked);
+ if(!reducedPreview)drawCutOverlay(ctx,canvas,segment,time,$('safeFlash').checked);
  state.hasGoodFrame=true;
  if($('lipSyncToggle').checked && state.lip.ready && media.kind==='video'){
    try{
@@ -439,11 +451,13 @@ function reportSync(){
  const active=state.media.find(m=>m.id===state.lastMediaId);
  const frame=active?.el?.__galaxiaFrame;
  const age=frame?.lastAt?performance.now()-frame.lastAt:0;
- const diagnosis=active?.kind==='video'?syncStatus(state.lastDrift,age,frame?.dropped||0):'AUDIO MASTER ✓';
+ const recentDropped=frame?Math.max(0,(frame.dropped||0)-(frame.lastReportedDropped||0)):0;
+ if(frame)frame.lastReportedDropped=frame.dropped||0;
+ const diagnosis=active?.kind==='video'?syncStatus(state.lastDrift,age,recentDropped):'AUDIO MASTER ✓';
  $('syncState').textContent=diagnosis;
  const ms=Math.round(state.lastDrift*1000);
  $('lagReadout').textContent=active?.kind==='video'
-  ? 'Visual offset: '+ms+' ms · '+(frame?.presented?'Decoded frames: '+frame.presented+' · dropped: '+frame.dropped:
+  ? 'Visual offset: '+ms+' ms · '+(frame?.presented?'Decoded frames: '+frame.presented+' · dropped since last check: '+recentDropped:
        'Frame callback not available')+' · seeks are throttled; song timing is never modified.'
   : 'Images need no video decoding; audio is the master clock.';
 }
@@ -690,6 +704,8 @@ $('lipStrength').addEventListener('input',()=>{
   $('lipStrengthValue').textContent=$('lipStrength').value+'%';
   if(!state.playing&&!state.rendering)renderFrame(state.position);
 });
+// Mobile Safari often cannot decode, process multiple FX and track faces at once.
+if(matchMedia('(max-width:780px)').matches)$('performanceMode').value='smooth';
 $('performanceMode').addEventListener('change',()=>{
   resizeCanvas();reportSync();
   status('Preview mode: '+$('performanceMode').selectedOptions[0].textContent+' · audio remains unchanged.','ok');
