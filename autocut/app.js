@@ -621,6 +621,7 @@ async function activateLipMotion(){
  }
  if(state.lip.ready){
    state.lip.setLyrics($('lyricsInput').value);
+   $('lipRetry').hidden=true;
    label.textContent='Ready · Play video with a clear face. Face recognition results appear here.';
    renderFrame(state.position);
    return;
@@ -630,13 +631,15 @@ async function activateLipMotion(){
   await state.lip.enable(message=>{if(toggle.checked)label.textContent=message});
   if(!toggle.checked)return;
   const cues=state.lip.setLyrics($('lyricsInput').value);
+  $('lipRetry').hidden=true;
   label.textContent='Ready · Low-lag tracking active. '+(cues?cues+' timed lyrics loaded. ':'')+'Live preview uses lighter FX; export retains full FX.';
   renderFrame(state.position);
  }catch(error){
   if(toggle.checked){
-   toggle.checked=false;
-   label.textContent='Unable to activate face tracking: '+String(error.message||error)+'. Tap toggle again after reconnecting.';
-   status('Lip motion unavailable. Video editing still works.','error');
+   // Keep the user's switch ON so failures are visible and retryable.
+   label.textContent='Face tracker unavailable: '+String(error.message||error)+'. Tap Retry face tracking.';
+   $('lipRetry').hidden=false;
+   status('Face tracker could not load. Toggle remains ON; retry is available.','error');
   }
  }
 }
@@ -644,6 +647,7 @@ async function changeLipSync(){
  if(!$('lipSyncToggle').checked){
   state.lip.reset();
   $('lipStatus').textContent='Off · lip animation disabled.';
+  $('lipRetry').hidden=true;
   resizeCanvas();
   return;
  }
@@ -677,6 +681,7 @@ $('copyMVPrompt').addEventListener('click',copyCreativePrompt);
 $('applyMVPrompt').addEventListener('click',applyCreativeSuggestions);
 $('showSuggestedPrompts').addEventListener('change',renderPromptSuggestions);
 $('lipSyncToggle').addEventListener('change',changeLipSync);
+$('lipRetry').addEventListener('click',()=>void activateLipMotion());
 $('lyricsInput').addEventListener('input',()=>{
   const cues=state.lip.setLyrics($('lyricsInput').value);
   if(cues&&$('lipSyncToggle').checked)$('lipStatus').textContent='Approximate LRC word cues loaded: '+cues+' · song envelope still drives mouth motion.';
