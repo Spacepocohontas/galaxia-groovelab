@@ -51,6 +51,13 @@ test('lip animation is disabled by default, loaded lazily and explicitly approxi
  assert.ok(html.includes('role="status" aria-live="polite"'));
  assert.ok(html.includes('not automatic speech dubbing or precise phoneme alignment'));
  assert.ok(app.includes('state.lip.apply('));
+ assert.ok(lip.includes("const TASKS_VERSION='0.10.21'"),'verified MediaPipe dependency must be pinned');
+ assert.ok(!lip.includes('@0.10.22/'),'invalid CDN pin must never return');
+ assert.ok(app.includes("$('lipRetry').hidden=false"),'failed model download must remain retryable');
+ assert.ok(!app.includes('toggle.checked=false;'),'library failures must never switch lip toggle off');
+ assert.ok(app.includes("liveShot=lowLag?"),'low-lag mobile canvas rendering should be active');
+ assert.ok(app.includes('newClip:needsNewPosition'),'avoid forced seeks on every beat cut');
+ assert.ok(html.includes('id="lipRetry"'),'retry control should exist');
 });
 test('music video brief uses visual and audio local analysis without falsely claiming lyric recognition',()=>{
  assert.ok(app.includes('sampleFootage('));
