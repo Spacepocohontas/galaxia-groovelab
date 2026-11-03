@@ -3,9 +3,12 @@
    MediaPipe model is downloaded only after user enables this toggle. */
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const MODEL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
-const VISION='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs';
-const VISION_FALLBACK='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
-const WASM='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm';
+// 0.10.22 does not exist as a published stable package. Use verified 0.10.21.
+const TASKS_VERSION='0.10.21';
+const VISION='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+TASKS_VERSION+'/vision_bundle.mjs';
+const VISION_FALLBACK='https://unpkg.com/@mediapipe/tasks-vision@'+TASKS_VERSION+'/vision_bundle.mjs';
+const WASM='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+TASKS_VERSION+'/wasm';
+const WASM_FALLBACK='https://unpkg.com/@mediapipe/tasks-vision@'+TASKS_VERSION+'/wasm';
 export function mouthEnergy(audioAnalysis,seconds){
   if(!audioAnalysis?.amplitude?.length||!audioAnalysis.fps)return 0;
   const index=clamp(Math.floor(seconds*audioAnalysis.fps),0,audioAnalysis.amplitude.length-1);
@@ -68,11 +71,12 @@ export class LipMotion {
    let lib;
    try{lib=await import(VISION)}catch(err){
     try{lib=await import(VISION_FALLBACK)}
-    catch(fallback){throw Error('Face tracker download failed. Check internet access. '+String(fallback.message||fallback).slice(0,100))}
+    catch(fallback){throw Error('Face tracker failed to load from both CDNs. '+String(fallback.message||fallback).slice(0,100))}
    }
    const {FaceLandmarker,FilesetResolver}=lib;
    if(!FaceLandmarker||!FilesetResolver)throw Error('Face tracking library did not supply the necessary components.');
-   const vision=await FilesetResolver.forVisionTasks(WASM);
+   let vision;
+   try{vision=await FilesetResolver.forVisionTasks(WASM)}catch(e){vision=await FilesetResolver.forVisionTasks(WASM_FALLBACK)}
    this.model=await FaceLandmarker.createFromOptions(vision,{
     baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},
     runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,
