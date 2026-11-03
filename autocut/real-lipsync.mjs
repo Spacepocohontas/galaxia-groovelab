@@ -161,14 +161,17 @@ export function setupRealLipSync({getMedia,getAudioBuffer,getAudioFile,importMed
       state.busy=true;$('realLipGo').disabled=true;$('realLipEstimate').disabled=true;
       $('realLipOutput').hidden=true;
       const audio=await prepareAudio();
-      note('Preparing face footage for AI generation…');
-      const videoAssetId=await uploadFile(source.file,k);
-      const audioAssetId=await uploadFile(audio.file,k);
-      // New click means one generation. If acceptance is uncertain, reuse this same key on explicit retry.
+      const fingerprint=[source.id,$('realLipModel').value,audio.start,audio.seconds,
+        $('realLipDriver').value,vocalFile?.name||'',vocalFile?.size||0,vocalFile?.lastModified||0].join(':');
       let retry=state.jobContext;
-      const fingerprint=[source.id,$('realLipModel').value,audio.start,audio.seconds].join(':');
-      if(!retry||retry.fingerprint!==fingerprint)retry={fingerprint,idempotencyKey:crypto.randomUUID()};
+      if(!retry||retry.fingerprint!==fingerprint)
+        retry={fingerprint,idempotencyKey:crypto.randomUUID(),videoAssetId:null,audioAssetId:null};
       state.jobContext=retry;
+      // Keep the exact same asset references and idempotency key if a request timed out.
+      note('Preparing face footage for AI generation…');
+      if(!retry.videoAssetId)retry.videoAssetId=await uploadFile(source.file,k);
+      if(!retry.audioAssetId)retry.audioAssetId=await uploadFile(audio.file,k);
+      const videoAssetId=retry.videoAssetId,audioAssetId=retry.audioAssetId;
       note('Submitting to real lip-sync model. Credits may now be consumed.');
       const job=await api('generate',{
         model:$('realLipModel').value,videoAssetId,audioAssetId,
@@ -178,6 +181,7 @@ export function setupRealLipSync({getMedia,getAudioBuffer,getAudioFile,importMed
       state.jobId=job.id;
       try{sessionStorage.setItem(JOB_STORAGE,JSON.stringify({id:job.id}))}catch{}
       await pollGeneration(job.id,k);
+      state.jobContext=null;
     }catch(e){note('Real lip-sync: '+e.message,true);$('realLipProgress').hidden=true}
     finally{state.busy=false;$('realLipEstimate').disabled=false;$('realLipGo').disabled=!state.estimated||!$('realLipConfirm').checked}
   }
@@ -188,8 +192,8 @@ export function setupRealLipSync({getMedia,getAudioBuffer,getAudioFile,importMed
       const response=await fetch(state.outputUrl,{mode:'cors'});
       if(!response.ok)throw Error('Provider file download failed');
       const blob=await response.blob();
-      if(!blob.type.startsWith('video/'))throw Error('Returned file is not a supported video');
-      const file=new File([blob],'GalaXia-AI-LipSync.mp4',{type:blob.type||'video/mp4'});
+      if(!blob.size)throw Error('Provider returned an empty video');
+      const file=new File([blob],'GalaXia-AI-LipSync.mp4',{type:blob.type.startsWith('video/')?blob.type:'video/mp4'});
       await importMedia([file]);
       note('AI-lip-synced footage added to your media collection. Choose it in your video scenes; the original song stays locked.');
     }catch(e){
