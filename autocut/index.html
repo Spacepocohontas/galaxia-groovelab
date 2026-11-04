@@ -133,9 +133,22 @@
          </label>
        </div>
        <p id="freeLipAudioStatus" class="lip-status">No extra vocal file needed. The soundtrack drives mouth movement automatically.</p>
+       <div class="free-lip-actions">
+         <button id="freeLipLyricsJump" type="button" class="btn subtle">✎ Paste lyrics &amp; vocal instructions</button>
+         <label for="freeLyricFile" class="btn subtle">↑ Import .txt / .lrc
+           <input type="file" id="freeLyricFile" accept=".txt,.lrc,text/plain" hidden>
+         </label>
+       </div>
+       <p class="lip-status" id="freeLipCueStatus" role="status" aria-live="polite">Paste lyrics above to estimate mouth timing. No files are sent to a server.</p>
        <p id="lipStatus" class="lip-status" role="status" aria-live="polite">Automatic free mode ON · Add your soundtrack and face video to start. Face tracking downloads a free model once.</p>
        <button type="button" id="lipRetry" class="btn subtle" hidden>↻ Retry face tracking</button>
        <p class="lip-status">⚡ No more magnifying-glass effect: free mode now applies a subtle, feathered lip-opening cue without stretching the face. It is still approximate—not AI-generated speech or word-accurate dubbing.</p>
+     </section>
+     <section class="panel free-real-lip-panel" id="freeGPULip">
+       <div class="panel-heading"><div><span class="section-number">FREE GPU · DAILY LIMIT</span><h2>Natural video lip-sync (MuseTalk)</h2></div></div>
+       <p class="lip-status">For actual AI-generated mouth shapes instead of the basic local effect, use an open-source MuseTalk 1.5 demo on Hugging Face ZeroGPU. Upload your video and the matching vocals there, render, then download the MP4 and import it into AutoCut.</p>
+       <p class="lip-status">This option is hosted by a third party, not on your phone. Free GPU time has daily quotas and queues, and availability is not guaranteed. Only upload media you have permission to process. It does not spend AutoCut or Sync Labs credits.</p>
+       <a class="btn primary" href="https://huggingface.co/spaces/henrybit/musetalk-1-5" rel="noopener noreferrer" target="_blank">🎬 Open free MuseTalk GPU renderer ↗</a>
      </section>
      <section class="panel real-lip-panel">
       <div class="panel-heading"><div><span class="section-number">OPTIONAL · CREDITS</span><h2>Studio-quality generative lip-sync</h2></div><span class="info-chip">GENERATIVE VIDEO</span></div>
