@@ -54,7 +54,7 @@ test('free automatic lip animation is enabled by default and loaded lazily',()=>
  assert.ok(app.includes('state.rendering ||'));
  assert.ok(!app.includes('media.shotKey=shot.id;state.activeShot=shot.id;state.lip.reset()'));
  assert.ok(html.includes('role="status" aria-live="polite"'));
- assert.ok(html.includes('not automatic speech dubbing or precise phoneme alignment'));
+ assert.ok(html.includes('not phoneme-accurate voice dubbing'));
  assert.ok(app.includes('state.lip.apply('));
  assert.ok(lip.includes("const TASKS_VERSION='0.10.21'"),'verified MediaPipe dependency must be pinned');
  assert.ok(!lip.includes('@0.10.22/'),'invalid CDN pin must never return');
