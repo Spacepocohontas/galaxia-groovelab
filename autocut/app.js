@@ -78,6 +78,7 @@ async function loadAudio(file){if(!file)return;stopPreview();status('Decoding so
   $('customDuration').value=String(Math.round(state.analysis.duration*10)/10);
   drawWave();syncLengths();status('Soundtrack loaded: '+state.analysis.bpm.toFixed(1)+' BPM ('+state.analysis.confidence+').','ok');
   if(state.media.length)createPlan(false);
+  refreshFreeLyricTiming();
   if($('lipSyncToggle').checked)void activateLipMotion();
  }catch(err){state.audioBuffer=null;state.analysis=null;state.audioFile=null;status('Audio load failed: '+err.message,'error')}
 }
@@ -96,6 +97,7 @@ async function loadFreeVocalDriver(file){
    finally{await ac.close()}
    state.freeVocalAnalysis=summarizeAudio(
      [buffer.getChannelData(0)],buffer.sampleRate);
+   refreshFreeLyricTiming();
    label.textContent='Free vocals loaded: '+file.name+'. Mouth animation follows this audio; original music remains unchanged.';
    if(state.lip.ready&&!state.playing&&!state.rendering)renderFrame(state.position);
  }catch(error){
@@ -107,6 +109,19 @@ function freeLipAudio(){
  return $('freeLipDriver').value==='vocals'&&state.freeVocalAnalysis
   ?state.freeVocalAnalysis:state.analysis;
 }
+
+let lyricTimer=0;
+function refreshFreeLyricTiming(){
+ const lyricText=$('lyricsInput').value;
+ const count=state.lip.setLyrics(lyricText,freeLipAudio());
+ const label=$('freeLipCueStatus');
+ if(!lyricText.trim())label.textContent='Paste lyrics or import .txt/.lrc to guide the mouth (optional).';
+ else if(!freeLipAudio())label.textContent='Lyrics loaded · Import your song to estimate timing.';
+ else if(state.lip.lyricMode==='timestamped')label.textContent='✓ '+count+' timestamped LRC word cues loaded.';
+ else label.textContent='≈ '+count+' word cues placed automatically using the song energy. These are estimates, not voice recognition.'
+  +(state.lip.stageNotes.length?' Production notes: '+state.lip.stageNotes.join(' '):'');
+}
+function scheduleFreeLyricTiming(){clearTimeout(lyricTimer);lyricTimer=setTimeout(refreshFreeLyricTiming,280)}
 function getImage(url){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Image cannot be decoded'));image.src=url})}
 async function addMedia(files){if(!files?.length)return;state.generatedBrief=null;state.mediaSummary=null;
  $('generatedMVPrompt').value='';$('copyMVPrompt').disabled=true;$('applyMVPrompt').disabled=true;status('Loading '+files.length+' media file(s)…');let added=0,failed=0;
@@ -661,7 +676,7 @@ async function activateLipMotion(){
    return;
  }
  if(state.lip.ready){
-   state.lip.setLyrics($('lyricsInput').value);
+   state.lip.setLyrics($('lyricsInput').value,freeLipAudio());
    $('lipRetry').hidden=true;
    label.textContent='Ready · Play video with a clear face. Face recognition results appear here.';
    renderFrame(state.position);
@@ -671,7 +686,7 @@ async function activateLipMotion(){
  try{
   await state.lip.enable(message=>{if(toggle.checked)label.textContent=message});
   if(!toggle.checked)return;
-  const cues=state.lip.setLyrics($('lyricsInput').value);
+  const cues=state.lip.setLyrics($('lyricsInput').value,freeLipAudio());
   $('lipRetry').hidden=true;
   label.textContent='Ready · Low-lag tracking active. '+(cues?cues+' timed lyrics loaded. ':'')+'Live preview uses lighter FX; export retains full FX.';
   renderFrame(state.position);
@@ -723,6 +738,7 @@ $('applyMVPrompt').addEventListener('click',applyCreativeSuggestions);
 $('showSuggestedPrompts').addEventListener('change',renderPromptSuggestions);
 $('lipSyncToggle').addEventListener('change',changeLipSync);
 $('freeLipDriver').addEventListener('change',()=>{
+ refreshFreeLyricTiming();
  const useVocals=$('freeLipDriver').value==='vocals';
  $('freeLipVocalsWrap').hidden=!useVocals;
  $('freeLipAudioStatus').textContent=useVocals
@@ -734,9 +750,19 @@ $('freeLipVocals').addEventListener('change',e=>{
  void loadFreeVocalDriver(e.target.files?.[0]);e.target.value='';
 });
 $('lipRetry').addEventListener('click',()=>void activateLipMotion());
-$('lyricsInput').addEventListener('input',()=>{
-  const cues=state.lip.setLyrics($('lyricsInput').value);
-  if(cues&&$('lipSyncToggle').checked)$('lipStatus').textContent='Approximate LRC word cues loaded: '+cues+' · song envelope still drives mouth motion.';
+$('lyricsInput').addEventListener('input',scheduleFreeLyricTiming);
+$('freeLipLyricsJump').addEventListener('click',()=>{
+ $('lyricsInput').scrollIntoView({behavior:'smooth',block:'center'});
+ $('lyricsInput').focus();
+});
+$('freeLyricFile').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];e.target.value='';
+ if(!file)return;
+ try{
+   if(file.size>120000)throw Error('Lyrics file exceeds 120 KB');
+   $('lyricsInput').value=await file.text();
+   refreshFreeLyricTiming();
+ }catch(err){$('freeLipCueStatus').textContent='Could not read lyrics: '+err.message}
 });
 $('lipStrength').addEventListener('input',()=>{
   $('lipStrengthValue').textContent=$('lipStrength').value+'%';
