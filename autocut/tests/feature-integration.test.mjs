@@ -54,7 +54,7 @@ test('free automatic lip animation is enabled by default and loaded lazily',()=>
  assert.ok(app.includes('state.rendering ||'));
  assert.ok(!app.includes('media.shotKey=shot.id;state.activeShot=shot.id;state.lip.reset()'));
  assert.ok(html.includes('role="status" aria-live="polite"'));
- assert.ok(html.includes('not phoneme-accurate voice dubbing'));
+ assert.ok(html.includes('not AI-generated speech or word-accurate dubbing'));
  assert.ok(app.includes('state.lip.apply('));
  assert.ok(!lip.includes('ctx.scale(1,expansion)'),'old lens/magnification animation must not return');
  assert.ok(!lip.includes('ctx.drawImage(patch'),'mouth pixels must not be copied and stretched');
