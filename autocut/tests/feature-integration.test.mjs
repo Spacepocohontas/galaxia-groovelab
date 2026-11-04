@@ -37,7 +37,12 @@ test('video playback uses drift tolerance and sparse seeks rather than per-frame
 });
 test('lip animation is disabled by default, loaded lazily and explicitly approximate',()=>{
  assert.ok(html.includes('id="lipSyncToggle" type="checkbox"'));
- assert.ok(!html.includes('id="lipSyncToggle" type="checkbox" checked'));
+ assert.ok(html.includes('id="lipSyncToggle" type="checkbox" checked'));
+ assert.ok(html.includes('id="freeLipSection"'));
+ assert.ok(html.includes('id="freeLipDriver"'));
+ assert.ok(html.includes('id="freeLipVocals"'));
+ assert.ok(app.includes('state.lip.apply(ctx,canvas,freeLipAudio(),time'));
+ assert.ok(app.includes("$('freeLipDriver').addEventListener('change'"));
  assert.ok(lip.includes('await import(VISION)'));
  assert.ok(lip.includes('VISION_FALLBACK'));
  assert.ok(lip.includes('detectFrame=true'));
