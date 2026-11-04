@@ -56,6 +56,10 @@ test('free automatic lip animation is enabled by default and loaded lazily',()=>
  assert.ok(html.includes('role="status" aria-live="polite"'));
  assert.ok(html.includes('not phoneme-accurate voice dubbing'));
  assert.ok(app.includes('state.lip.apply('));
+ assert.ok(!lip.includes('ctx.scale(1,expansion)'),'old lens/magnification animation must not return');
+ assert.ok(!lip.includes('ctx.drawImage(patch'),'mouth pixels must not be copied and stretched');
+ assert.ok(lip.includes('this.smoothedOpen'),'mouth transitions should be smoothed');
+ assert.ok(lip.includes('naturalGap'),'original open lips should not get artificially enlarged');
  assert.ok(lip.includes("const TASKS_VERSION='0.10.21'"),'verified MediaPipe dependency must be pinned');
  assert.ok(!lip.includes('@0.10.22/'),'invalid CDN pin must never return');
  assert.ok(app.includes("$('lipRetry').hidden=false"),'failed model download must remain retryable');
