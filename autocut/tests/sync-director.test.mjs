@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {wrappedDrift,syncDecision,videoDelayTarget,drawIntervalFor,syncStatus} from '../sync.mjs';
-import {mouthEnergy,parseTimedLyrics} from '../lip-sync.mjs';
+import {mouthEnergy,parseTimedLyrics,autoAlignLyrics,LipMotion} from '../lip-sync.mjs';
 import {analyzeSound,lyricMood,suggestMusicVideo} from '../director.mjs';
 import {makePlan,assertContinuous} from '../engine.mjs';
 
@@ -73,4 +73,28 @@ test('timed LRC lyrics produce approximate word cues, never fake recognition',()
  assert.ok(cues[0].opening>=0&&cues[0].opening<=1);
  assert.ok(cues.at(-1).time>3);
  assert.deepEqual(parseTimedLyrics('Words without timestamps'),[]);
+});
+
+test('plain song lyrics automatically align to audio without treating studio notes as sung text',()=>{
+ const analysis={duration:90,fps:10,rms:.15,amplitude:Array.from({length:900},(_,i)=>i%32<14?.24:.08)};
+ const raw='[Prompt instruct:vocals:reverb,layering, harmonize Singing during chorus & cough then clear throat during Verse 5] [Verse 1] PRIDE! let me be right [Chorus] Who is laughing now? [Outro]';
+ const result=autoAlignLyrics(raw,analysis);
+ assert.equal(result.mode,'estimated');
+ assert.ok(result.cues.length>=9);
+ assert.equal(result.cues.some(c=>/verse|instruct|outro|reverb/i.test(c.word)),false);
+ assert.ok(result.stageNotes.some(s=>s.includes('Cough')));
+ for(let i=1;i<result.cues.length;i++)assert.ok(result.cues[i].time>=result.cues[i-1].time);
+ assert.ok(result.cues.at(-1).end<=90.05);
+});
+test('LRC word-level timestamps take priority over automatic lyric fitting',()=>{
+ const motion=new LipMotion();
+ const audio={duration:50,fps:10,amplitude:Array(500).fill(.15),rms:.15};
+ assert.equal(motion.setLyrics('[00:01.25] Laughing now\n[00:07.00] No tears',audio),4);
+ assert.equal(motion.lyricMode,'timestamped');
+ assert.equal(motion.lyricCues[0].time,1.25);
+});
+test('no soundtrack does not fabricate alignment timestamps',()=>{
+ const result=autoAlignLyrics('[Verse 1] Pride! I have dreams.',null);
+ assert.equal(result.mode,'waiting');
+ assert.equal(result.cues.length,0);
 });
