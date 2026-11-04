@@ -57,11 +57,50 @@ function timedMouthEnergy(cues,seconds){
  return null;
 }
 
+/** Approximate, local lyric timing; does not recognize sung words. Timed LRC takes precedence. */
+export function autoAlignLyrics(input,analysis){
+ const raw=String(input||''),duration=Number(analysis?.duration)||0,stageNotes=[];
+ if(/cough/i.test(raw)&&/clear[\s-]*throat|throat[\s-]*clear/i.test(raw))
+   stageNotes.push('Cough then clear throat during Verse 5: include these sounds in the recorded vocal audio.');
+ if(/harmoni[sz]|layer(?:ed|ing)|chorus|chrs/i.test(raw))
+   stageNotes.push('Layered chorus harmonies noted; one mouth follows the principal vocal.');
+ if(!Number.isFinite(duration)||duration<=0)return {mode:'waiting',cues:[],stageNotes};
+ const clean=raw.replace(/\[(?:Prompt instruct|Lyrics prompt system)[^\]]*\]/gi,' ')
+   .replace(/\[[^\]]*\]/g,' ')
+   .replace(/\((?:[^)]{0,65}?)(?:chrs|verse|bridge|outro|intro|sing|vocal|sfx|rpt|harmon)[^)]*\)/gi,' ')
+   .replace(/(?:\*{1,2})?(?:sfx:)?(?:gunshot2pops|guns rings|echofadesustain|inst fds)(?:\*{1,2})?/gi,' ');
+ const words=(clean.match(/[A-Za-zÀ-ÿ0-9]+(?:['’][A-Za-zÀ-ÿ0-9]+)*/g)||[]).slice(0,4000);
+ if(!words.length)return {mode:'empty',cues:[],stageNotes};
+ const weights=words.map(w=>Math.min(4,Math.max(.8,.35+.74*Math.max(1,(w.match(/[aeiouyà-ÿ]+/gi)||[]).length))));
+ const total=weights.reduce((a,b)=>a+b,0),amp=analysis?.amplitude||[],fps=Number(analysis?.fps)||0;
+ const n=fps>0?Math.min(amp.length,Math.ceil(duration*fps)):0;let sum=null,energyTotal=0;
+ if(n>4){
+   sum=new Float64Array(n+1);const rms=Math.max(.001,Number(analysis?.rms)||.05);
+   for(let i=0;i<n;i++)sum[i+1]=sum[i]+.45+.55*Math.min(2,Math.max(0,(Number(amp[i])||0)/rms));
+   energyTotal=sum[n];
+ }
+ function tAt(p){
+   p=clamp(p,0,1);if(!sum||!energyTotal)return duration*p;
+   const target=energyTotal*p;let lo=0,hi=n;
+   while(lo<hi){const m=(lo+hi)>>>1;if(sum[m]<target)lo=m+1;else hi=m}
+   return clamp(lo/fps,0,duration);
+ }
+ const cues=[];let cursor=0;
+ for(let i=0;i<words.length;i++){
+   const word=words[i],weight=weights[i],time=tAt(cursor/total),end=tAt((cursor+weight)/total);
+   cursor+=weight;
+   const token=word.toLowerCase();
+   const opening=/^[bmp]/.test(token)?.08:/^[fv]/.test(token)?.16:/[aoàâ]/.test(token)?.84:/[eiéè]/.test(token)?.54:.42;
+   cues.push({time,end:Math.max(time+.02,end),opening,word,estimated:true});
+ }
+ return {mode:'estimated',cues,stageNotes};
+}
+
 export class LipMotion {
  constructor(){
   this.lyricCues=[];this.ready=false;this.loading=null;this.model=null;this.lastDetection=-Infinity;
   this.face=null;this.scan=null;this.patch=null;this.status='Off';this.frameToken=0;this.smoothedOpen=0;
-  this.avgDetectMs=0;this.missCount=0;
+  this.avgDetectMs=0;this.missCount=0;this.lyricMode='empty';this.stageNotes=[];
  }
  async enable(onStatus=()=>{}){
   if(this.ready)return true;
@@ -93,7 +132,12 @@ export class LipMotion {
   return this.loading;
  }
  reset(){this.face=null;this.lastDetection=-Infinity;this.missCount=0;this.smoothedOpen=0;}
- setLyrics(text){this.lyricCues=parseTimedLyrics(text);return this.lyricCues.length;}
+ setLyrics(text,analysis){
+  const timed=parseTimedLyrics(text);
+  if(timed.length){this.lyricCues=timed;this.lyricMode='timestamped';this.stageNotes=[]}
+  else{const r=autoAlignLyrics(text,analysis);this.lyricCues=r.cues;this.lyricMode=r.mode;this.stageNotes=r.stageNotes}
+  return this.lyricCues.length;
+ }
  destroy(){
   try{this.model?.close()}catch{}
   this.model=null;this.ready=false;this.loading=null;this.reset();
