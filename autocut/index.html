@@ -120,8 +120,25 @@
       </div>
       <p class="preview-hint">Original song audio remains the master clock. Preview draws frames at an adaptive rate; export keeps its own quality setting.</p>
      </section>
+     <section class="panel lip-panel" id="freeLipSection"><div class="panel-heading"><div><span class="section-number">FREE · AUTOMATIC</span><h2>Auto Lip-Sync · No credits</h2></div></div>
+       <label class="lip-toggle"><span><b>🎤 Free auto mouth animation</b><small>Turns on automatically when you add a song + a video showing a face. Runs on your phone; no API key, tokens or generation credits.</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox" checked><span class="slider"></span></span></label>
+       <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
+       <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">
+       <div class="free-lip-inputs">
+         <label class="real-field">MOUTH-MOTION AUDIO
+           <select id="freeLipDriver"><option value="song" selected>Use uploaded song automatically</option><option value="vocals">Use a separate vocals-only track (better for singing)</option></select>
+         </label>
+         <label class="real-field" id="freeLipVocalsWrap" hidden>OPTIONAL VOCALS TRACK
+           <input id="freeLipVocals" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac">
+         </label>
+       </div>
+       <p id="freeLipAudioStatus" class="lip-status">No extra vocal file needed. The soundtrack drives mouth movement automatically.</p>
+       <p id="lipStatus" class="lip-status" role="status" aria-live="polite">Automatic free mode ON · Add your soundtrack and face video to start. Face tracking downloads a free model once.</p>
+       <button type="button" id="lipRetry" class="btn subtle" hidden>↻ Retry face tracking</button>
+       <p class="lip-status">⚡ 100% free, approximate audio-reactive mouth motion; not phoneme-accurate voice dubbing. No media uploaded to a paid service. Smooth preview reduces lag; export keeps full video effects.</p>
+     </section>
      <section class="panel real-lip-panel">
-      <div class="panel-heading"><div><span class="section-number">REAL AI</span><h2>Natural singing lip-sync</h2></div><span class="info-chip">GENERATIVE VIDEO</span></div>
+      <div class="panel-heading"><div><span class="section-number">OPTIONAL · CREDITS</span><h2>Studio-quality generative lip-sync</h2></div><span class="info-chip">GENERATIVE VIDEO</span></div>
       <div class="real-lip-callout"><span class="real-lip-icon">🎤</span><div><b>Actual words, actual mouth shapes — no magnifying lips.</b>
       <p>Generative lip-sync makes new mouth movements from a recording of a singer or character and the real vocal audio. Paste lyrics for direction, but audio supplies the pronunciation.</p></div></div>
       <label class="real-check"><input id="realLipToggle" type="checkbox"><span>Enable real AI lip-sync workflow <small>OFF until you choose a clip. This sends chosen video and vocals to Sync Labs only when you explicitly start a generation.</small></span></label>
@@ -167,15 +184,7 @@
         </details>
       </div>
     </section>
-    <section class="panel lip-panel" hidden><div class="panel-heading"><div><span class="section-number">BETA</span><h2>Experimental singing lip motion</h2></div></div>
-       <label class="lip-toggle"><span><b>🎤 Animate visible lips to music</b><small>Approximate on-device mouth motion, not automatic speech dubbing or precise phoneme alignment.</small></span><span class="switch"><input id="lipSyncToggle" type="checkbox"><span class="slider"></span></span></label>
-       <label for="lipStrength" class="variety-label">Mouth-motion strength <strong id="lipStrengthValue">40%</strong></label>
-       <input id="lipStrength" type="range" min="5" max="100" value="40" step="5">
-       <p id="lipStatus" class="lip-status" role="status" aria-live="polite">Off · Enable face tracking. Add a soundtrack and video with a visible face.</p>
-       <button type="button" id="lipRetry" class="btn subtle" hidden>↻ Retry face tracking</button>
-       <p class="lip-status">⚡ Low-lag preview scans faces less often and skips secondary FX overlays while playing. Export retains full FX. Choose Smooth mode on older phones.</p>
-     </section>
-     <section class="panel lock-panel"><div class="panel-heading"><div><span class="section-number">04</span><h2>Timeline rules</h2></div></div>
+    <section class="panel lock-panel"><div class="panel-heading"><div><span class="section-number">04</span><h2>Timeline rules</h2></div></div>
       <div class="lock-control"><div class="lock-icon">♙</div><div><b>Lock audio duration</b><small>Always match the uploaded song's full running time.</small></div><label class="switch"><input id="durationLock" type="checkbox" checked><span class="slider"></span><span class="sr-only">Lock audio duration</span></label></div>
       <div class="duration-readout"><div><span>SONG LENGTH</span><b id="songDuration">—</b></div><span class="duration-link">≡</span><div><span>VIDEO LENGTH</span><b id="videoDuration">—</b></div></div>
       <div class="unlock-box" id="unlockBox" hidden><label for="customDuration">Custom video length (seconds)</label><input id="customDuration" type="number" min="0.5" step="0.1" value="30"><small>Unlocked: video may be shorter or longer than the song.</small></div>
