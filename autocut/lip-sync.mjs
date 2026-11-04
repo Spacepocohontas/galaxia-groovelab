@@ -60,7 +60,7 @@ function timedMouthEnergy(cues,seconds){
 export class LipMotion {
  constructor(){
   this.lyricCues=[];this.ready=false;this.loading=null;this.model=null;this.lastDetection=-Infinity;
-  this.face=null;this.scan=null;this.patch=null;this.status='Off';this.frameToken=0;
+  this.face=null;this.scan=null;this.patch=null;this.status='Off';this.frameToken=0;this.smoothedOpen=0;
   this.avgDetectMs=0;this.missCount=0;
  }
  async enable(onStatus=()=>{}){
@@ -83,7 +83,7 @@ export class LipMotion {
     minFacePresenceConfidence:.55,minTrackingConfidence:.55
    });
    this.scan=document.createElement('canvas');this.scan.width=144;this.scan.height=192;
-   this.patch=document.createElement('canvas');this.patch.width=200;this.patch.height=95;
+   // No magnified canvas patch: mouth shading preserves the original face pixels.
    this.ready=true;this.status='Face tracking loaded (approximate mouth motion)';
    onStatus(this.status);return true;
   })().catch(e=>{
@@ -92,7 +92,7 @@ export class LipMotion {
   });
   return this.loading;
  }
- reset(){this.face=null;this.lastDetection=-Infinity;this.missCount=0;}
+ reset(){this.face=null;this.lastDetection=-Infinity;this.missCount=0;this.smoothedOpen=0;}
  setLyrics(text){this.lyricCues=parseTimedLyrics(text);return this.lyricCues.length;}
  destroy(){
   try{this.model?.close()}catch{}
@@ -125,9 +125,17 @@ export class LipMotion {
    this.missCount=0;
    const left=points[61],right=points[291],top=points[0],bottom=points[17];
    if(!left||!right||!top||!bottom){this.face=null;return}
-   const x=(left.x+right.x)*.5,y=(top.y+bottom.y)*.5;
-   const pw=Math.abs(right.x-left.x)*1.35,ph=Math.max(Math.abs(bottom.y-top.y)*1.8,pw*.34);
-   this.face={x:clamp(x,0,1),y:clamp(y,0,1),w:clamp(pw,.015,.28),h:clamp(ph,.01,.18)};
+   const upper=points[13]||top,lower=points[14]||bottom;
+   const dx=(right.x-left.x)*canvas.width,dy=(right.y-left.y)*canvas.height;
+   const lipWidth=Math.hypot(dx,dy);
+   if(lipWidth<4){this.face=null;this.status='Face too small for mouth tracking';return}
+   const naturalGap=Math.hypot((lower.x-upper.x)*canvas.width,(lower.y-upper.y)*canvas.height)/lipWidth;
+   const x=(left.x+right.x)*.5,y=(upper.y+lower.y)*.5;
+   this.face={
+     x:clamp(x,0,1),y:clamp(y,0,1),
+     w:clamp(lipWidth/canvas.width,.012,.30),
+     angle:Math.atan2(dy,dx),naturalGap:clamp(naturalGap,0,.4)
+   };
    this.status='Approximate face-tracked lip motion active';
   }catch(error){
    this.face=null;this.status='Face tracking paused: '+String(error.message||error);
@@ -137,28 +145,33 @@ export class LipMotion {
   if(!enabled||!this.ready)return false;
   if(detectFrame)this.detect(canvas,now,mode);
   if(!this.face)return false;
-  const envelope=mouthEnergy(analysis,time);
-  const wordHint=timedMouthEnergy(this.lyricCues,time);
-  const e=wordHint===null?envelope:envelope*.45+wordHint*.55;
-  const extent=clamp(Number(strength)||0,0,1)*e;
-  if(extent<.04)return false;
+  const energy=mouthEnergy(analysis,time);
+  const cue=timedMouthEnergy(this.lyricCues,time);
+  const requested=clamp(Number(strength)||0,0,1)*(cue===null?energy:energy*.45+cue*.55);
+  // One-pole smoothing avoids flickering while remaining responsive to syllables.
+  this.smoothedOpen+=clamp(requested-this.smoothedOpen,-.30,.30)*.28;
   const f=this.face;
-  const w=Math.max(12,f.w*canvas.width),h=Math.max(8,f.h*canvas.height);
-  const x=clamp(f.x*canvas.width-w/2,0,canvas.width-w),y=clamp(f.y*canvas.height-h/2,0,canvas.height-h);
-  const patch=this.patch;
-  const pw=Math.round(w),ph=Math.round(h);
-  if(patch.width!==pw)patch.width=pw;
-  if(patch.height!==ph)patch.height=ph;
-  const p=patch.getContext('2d');
-  p.clearRect(0,0,patch.width,patch.height);
-  p.drawImage(canvas,x,y,w,h,0,0,patch.width,patch.height);
+  const width=f.w*canvas.width;
+  // Preserve mouth geometry: do not zoom, crop, scale, enlarge or relocate
+  // any part of the face. A feathered dark inner-mouth crease is the only
+  // composited effect; fade it when the original lips are already parted.
+  const extra=clamp(.015+this.smoothedOpen*.12-f.naturalGap,0,.11);
+  if(width<6||extra<.004)return false;
+  const cx=f.x*canvas.width,cy=f.y*canvas.height;
+  const radiusX=width*.46,radiusY=Math.max(.35,Math.min(width*.065,width*extra*.47));
+  const opacity=clamp(.06+this.smoothedOpen*.30,.06,.36);
   ctx.save();
-  const cx=x+w/2,cy=y+h/2;
-  ctx.beginPath();ctx.ellipse(cx,cy,w*.52,h*.52,0,0,Math.PI*2);ctx.clip();
   ctx.translate(cx,cy);
-  const expansion=1+extent*1.1;
-  ctx.scale(1,expansion);
-  ctx.drawImage(patch,-w/2,-h/2,w,h);
+  ctx.rotate(f.angle||0);
+  // The gradient fades entirely before the corners of the real mouth.
+  const shade=ctx.createRadialGradient(0,0,0,0,0,radiusX);
+  shade.addColorStop(0,'rgba(28,8,19,'+opacity.toFixed(3)+')');
+  shade.addColorStop(.70,'rgba(28,8,19,'+(opacity*.55).toFixed(3)+')');
+  shade.addColorStop(1,'rgba(28,8,19,0)');
+  ctx.fillStyle=shade;
+  ctx.beginPath();
+  ctx.ellipse(0,0,radiusX,radiusY,0,0,Math.PI*2);
+  ctx.fill();
   ctx.restore();
   return true;
  }
